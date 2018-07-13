@@ -49,7 +49,9 @@
               }
               return nodes;
             };
-            createScene = function (nodes) {
+            createScene = function (network) {
+                        nodes = network.nodes;
+                        edges = network.edges;
 
                         // Create the scene space
                         var scene = new BABYLON.Scene(engine);
@@ -65,24 +67,32 @@
 
                         // Add and manipulate meshes in the scene
                         // var sphere = BABYLON.MeshBuilder.CreateSphere("sphere", {diameter:2}, scene);
-                        var i = 0;
                         spheres = [];
-                        for (node_ in nodes){
-                          node = nodes[node_];
-                          var sphere = BABYLON.MeshBuilder.CreateSphere("sphere" + i, {diameter:.1}, scene);
+                        for (var i = 0; i < nodes.length ; i++){
+                          node = nodes[i];
+                          var sphere = BABYLON.MeshBuilder.CreateSphere("sphere" + i, {diameter:.02}, scene);
                           sphere.position = new BABYLON.Vector3(node[0], node[1], node[2]);
                           spheres.push(sphere);
-                          i++;
                         }
+                        lines = [];
+                        for (var i = 0; i < edges.length ; i++){
+                          pos1 = nodes[edges[i][0]];
+                          pos2 = nodes[edges[i][1]];
+                          pos1_ = new BABYLON.Vector3(pos1[0], pos1[1], pos1[2]);
+                          pos2_ = new BABYLON.Vector3(pos2[0], pos2[1], pos2[2]);
+                          var line = BABYLON.MeshBuilder.CreateLines("line" + i, {points: [pos1_, pos2_]}, scene);
+                          lines.push(line);
+                        }
+
                         return scene;
             };
 
 $.get(
-    "http://127.0.0.1:5000/",
+    "http://127.0.0.1:5000/rand/",
     {},
     function(data) {
-            nodes = data;
-            scene = createScene(nodes); //Call the createScene function
+            network = data;
+            scene = createScene(network); //Call the createScene function
 
             engine.runRenderLoop(function () { // Register a render loop to repeatedly render the scene
                     scene.render();

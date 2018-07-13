@@ -1,8 +1,21 @@
 # mle
 multilevel strategies for optimization and visualization
 
+### install with
+    $ pip install multilevel
+or
 
-### starting Flask selfcomp
+    $ python setup.py multilevel
+
+For greater control of customization, hacking and debugging, clone the repo and install with pip with -e:
+
+    $ git clone https://github.com/ttm/multilevel.git
+    $ pip3 install -e <path_to_repo>
+
+This install method is especially useful when reloading modified module in subsequent runs of music.
+
+
+### starting Flask server
 install Flask with pip
 
   $ cd server/
@@ -16,3 +29,4 @@ if you are hacking selfcomp:
 and start the server with
   $ flask run
 
+works with Babylon.js to enable WebGL visualizations.
