@@ -17,18 +17,20 @@ def index():
 def rand():
     nn = 50
     g = x.random_graphs.barabasi_albert_graph(nn,3)
-    l = x.layout.spectral_layout(g,3)
+    l = x.layout.spectral_layout(g,dim=3)
     nodepos = [l[i].tolist() for i in g.nodes()]
+    edges = [list(i) for i in g.edges()]
     # nodepos = (2*n.random.random((nn,3))-1).tolist()
-    return jsonify({'nodes': nodepos, 'edges': g.edges()})
+    return jsonify({'nodes': nodepos, 'edges': edges})
 
 @app.route("/gml/")
 def gml():
-    g = ml.parsers.GMLParser('/home/renato/Dropbox/Public/doc/vaquinha/RenatoFabbri11072013.gml').g
-    l = x.layout.spectral_layout(g,3)
+    g = ml.parsers.GMLParser('/home/renato/Dropbox/Public/doc/vaquinha/FASE1/aa.gml').g
+    l = x.layout.spring_layout(g,dim=3)
     nodepos = [l[i].tolist() for i in g.nodes]
+    edges = [list(i) for i in g.edges]
     # nodepos = (2*n.random.random((nn,3))-1).tolist()
-    return jsonify({'nodes': nodepos, 'edges': g.edges})
+    return jsonify({'nodes': nodepos, 'edges': edges})
 
 @app.route("/bbl/")
 def bbl():
