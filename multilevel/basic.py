@@ -69,8 +69,17 @@ class MLS1:
         self._match(level, method)  # make metaNodes
         self._collapse(level)  # make metaLinks
     def _match(self, level, method):
-        if method == 'cp':
-            g_ = self.gs[level]
+        g_ = self.gs[level]
+        if 'kclick' in method:  # k-click communities
+            k_ = int(method.replace('kclick', ''))
+            svs = [i for i in x.algorithms.community.k_clique_communities(g_, k_)]
+        elif method == 'lab':  # label propagation
+            svs = [i for i in x.algorithms.community.label_propagation_communities(g_)]
+            gg = x.Graph()
+            for i, sv in enumerate(svs):
+                gg.add_node(i, weight=len(sv), children=sv)
+            self.gs[level+1] = gg
+        elif method == 'cp':
             sub = [i for i in x.connected_component_subgraphs(g_)]
             g = sub[0]
             per = set(x.periphery(g))
