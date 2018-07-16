@@ -9,6 +9,6 @@ g = ml.parsers.GMLParser('/home/renato/Dropbox/Public/doc/vaquinha/FASE1/aa.gml'
 mls = ml.basic.MLS1()
 mls.setNetwork(g)
 mls.mkLayout()
-mls.mkLayout(1)
 mls.mkMetaNetwork(method='cp')
+mls.mkLayout(1)
 

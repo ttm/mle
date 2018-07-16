@@ -118,7 +118,15 @@ class MLS1:
                 self.mkRawLayout(level)
             else:
                 # put vertices in the centroid of its children
-                self.pos = self.npos[level-1].mean(0)
+                pos_ = []
+                for node in self.gs[level].nodes():
+                    # if node has children:
+                    if len(self.gs[level].nodes[node]['children']) > 0:
+                        pos = self.npos[level-1][n.array(list(self.gs[level].nodes[node]['children']))]
+                        pos_.append(pos.mean(0))
+                    else:
+                        pos_.append([0,0,0])
+                self.npos[level] = n.array(pos_)
     def mkRawLayout(self, level):
         l = self.layouts[self.layout](self.gs[level], dim=self.dim)
         nodepos = n.array([l[i] for i in self.nodes])

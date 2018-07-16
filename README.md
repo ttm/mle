@@ -1,4 +1,4 @@
-# mle
+# mls
 multilevel strategies for optimization and visualization
 
 ### install with
