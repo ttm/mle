@@ -57,7 +57,7 @@ def plot(net, layout, dim=3, links=1):
     return render_template('basicURLInterface.html', net=net, layout=layout, dim=dim, links=links)
 
 @app.route("/net/<int:net>/<layout>/<int:dim>/")
-def net(net, layout, dim=3):
+def net(net, layout, dim=3):  # deprecated?
     g = ml.parsers.GMLParser(nets[net]).g
     l = layouts[layout](g, dim=dim)
     nodepos = [l[i].tolist() for i in g.nodes]
@@ -68,23 +68,15 @@ def net(net, layout, dim=3):
 @app.route("/level/<int:net>/<layout>/<int:dim>/<int:links>/<int:level>/<method>/")
 def level_(net, layout, dim=3, links=1, level=1, method='mod'):
     # modularity, min_cut, center-periphery, hubs-int-per, 
-    if level == 0:
-        return render_template('basicURLInterface.html', net=net, layout=layout, dim=dim, links=links)
-    if method == 'cp':  # center-periphery
-        if level == 2:
-            nodepos = [[0, 0, 0]]
-            edges = []
-        if level == 1:
-            g = ml.parsers.GMLParser(nets[net]).g
-            per = set(x.periphery(g))
-            cen = set(x.center(g))
-            pc = per.union(cen)
-            nodes = set(g.nodes())
-            inter = nodes.difference(pc)
-            # l = layouts['spring'](g_, dim=dim)
-            nodepos = [(-1,0,0,len(per)), (0,0,0,len(inter)), (1,0,0,len(cen))]
-            edges = [list(i) for i in g.edges]
-    return jsonify({'nodes': nodepos, 'edges': edges})
-
     return render_template('basicURLMLInterface.html', net=net, layout=layout, dim=dim, links=links, ml=ml, level=level)
 
+@app.route("/part/<slug>/")
+def part(slug):
+    # use slug to access data of participant/user which is a person, an organization, an institution, an entity, other
+    # rdf data of the part is shown, it is an string ID, preferably user-readable
+    # networks related to the slug are shown, in their pre-coarsenest version (before collapse into singleton) by default, 
+    # the client may navigate such structures, obtain more by scrapping bots and APIs.
+    # the client may analyse such structures, obtain insights in how it is organized, how it is characterized and differs from others,
+    # and how to engage in it to alter its structures, for collection and diffusion of information, and for linking their social networks
+    # (virtual or in-person) to them.
+    pass
