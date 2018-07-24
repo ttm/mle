@@ -32,11 +32,11 @@ class MLS1:
         self.npos = {}
         self.status = ''
         self.nets = [
-                '/home/renato/Dropbox/Public/doc/vaquinha/FASE1/aa.gml',
-                '/home/renato/Dropbox/Public/doc/vaquinha/FASE1/automata18022013.gml',
-                '/home/renato/Dropbox/Public/doc/vaquinha/FASE1/GabiThume_huge_100002011676407_2013_02_19_04_40_b60204320447f88759e1efe7b031357b.gml',
-                '/home/renato/Dropbox/Public/doc/vaquinha/FASE1/LarissaAnzoateguihuge_1760577842_2013_02_20_02_07_f297e5c8675b72e87da409b2629dedb3.gml',
-                '/home/renato/Dropbox/Public/doc/vaquinha/FASE1/PedroRochaAttaktorZeros10032013.gml',
+                '/home/renato/repos/multilevel/data/aa.gml',
+                '/home/renato/repos/multilevel/data/automata18022013.gml',
+                '/home/renato/repos/multilevel/data/GabiThume_huge_100002011676407_2013_02_19_04_40_b60204320447f88759e1efe7b031357b.gml',
+                '/home/renato/repos/multilevel/data/LarissaAnzoateguihuge_1760577842_2013_02_20_02_07_f297e5c8675b72e87da409b2629dedb3.gml',
+                '/home/renato/repos/multilevel/data/PedroRochaAttaktorZeros10032013.gml',
         ]
         self.layouts = {
                 'circular' : x.layout.circular_layout,
