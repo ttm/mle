@@ -65,10 +65,50 @@ def net(net, layout, dim=3):  # deprecated?
     # nodepos = (2*n.random.random((nn,3))-1).tolist()
     return jsonify({'nodes': nodepos, 'edges': edges})
 
-@app.route("/level/<int:net>/<layout>/<int:dim>/<int:links>/<int:level>/<method>/")
-def level_(net, layout, dim=3, links=1, level=1, method='mod'):
+@app.route("/netlevel/<int:net>/<layout>/<int:dim>/<int:level>/<method>/")
+def netlevel(net, layout, dim=3, links=1, level=1, method='mod'):
     # modularity, min_cut, center-periphery, hubs-int-per, 
-    return render_template('basicURLMLInterface.html', net=net, layout=layout, dim=dim, links=links, ml=ml, level=level)
+    mls = ml.basic.MLS1()
+    mls.setLayout(layout)
+    mls.setDim(dim)
+    mls.setNetwork(ml.parsers.GMLParser(mls.nets[net]).g)
+    mls.mkMetaNetwork(level, method)
+    mls.mkLayout(level)
+    nodepos = [i.tolist() for i in mls.npos[level]]
+    edges = [list(i) for i in mls.gs[level].edges]
+    return jsonify({'nodes': nodepos, 'edges': edges})
+
+@app.route("/netlevels/<int:net>/<layout>/<int:dim>/<int:level>/<method>/<sep>/<int:axis>/")
+def netlevels(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3):
+    # modularity, min_cut, center-periphery, hubs-int-per, 
+    mls = ml.basic.MLS2()
+    mls.setLayout(layout)
+    mls.setDim(dim)
+    mls.setNetwork(ml.parsers.GMLParser(mls.nets[net]).g)
+    mls.mkMetaNetwork(level, method)
+    mls.mkLayout(level)
+    mls.mkLayout(level+1)
+    mls.mkLevelLayers(float(sep), axis)
+    nodepos = [i.tolist() for i in mls.npos_]
+    edges = mls.edges_
+    return jsonify({'nodes': nodepos, 'edges': edges})
+
+@app.route("/plotlevels/<int:net>/<layout>/<int:dim>/<int:links>/<int:level>/<method>/<sep>/<axis>/")
+def plotlevels(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3):
+    return render_template('basicURLMLInterface2.html', net=net, layout=layout, dim=dim, links=links, ml=ml, levels=level, method=method, sep=sep, axis=axis)
+
+@app.route("/plotlevel/<int:net>/<layout>/<int:dim>/<int:links>/<int:level>/<method>/")
+def plotlevel(net, layout, dim=3, links=1, level=1, method='mod'):
+    return render_template('basicURLMLInterface.html', net=net, layout=layout, dim=dim, links=links, ml=ml, levels=level, method=method)
+
+
+@app.route("/plotmultilevel/<int:net>/<layout>/<int:dim>/<int:links>/<levels>/<method>/")
+def plotmultilevel(net, layout, dim=3, links=1, levels=0, method='mod'):
+    # if levels == 0, plot from full network to singleton
+    return render_template('basicURLMLInterface.html', net=net, layout=layout, dim=dim, links=links, ml=ml, levels=levels)
+
+
+
 
 @app.route("/part/<slug>/")
 def part(slug):

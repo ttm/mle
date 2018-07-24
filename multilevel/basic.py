@@ -69,10 +69,17 @@ class MLS1:
         self._match(level, method)  # make metaNodes
         self._collapse(level)  # make metaLinks
     def _match(self, level, method):
+        if level not in self.gs:
+            self.mkMetaNetwork(level -1, method)
+            self.mkLayout(level-1)
         g_ = self.gs[level]
         if 'kclick' in method:  # k-click communities
             k_ = int(method.replace('kclick', ''))
             svs = [i for i in x.algorithms.community.k_clique_communities(g_, k_)]
+            gg = x.Graph()
+            for i, sv in enumerate(svs):
+                gg.add_node(i, weight=len(sv), children=sv)
+            self.gs[level+1] = gg
         elif method == 'lab':  # label propagation
             svs = [i for i in x.algorithms.community.label_propagation_communities(g_)]
             gg = x.Graph()
@@ -143,3 +150,24 @@ class MLS1:
         # nodepos = (2*n.random.random((nn,3))-1).tolist()
         # self.llayouts[level] = (nodepos, edges))
         self.npos[level] = nodepos
+
+class MLS2(MLS1):
+    def __init__(self):
+        MLS1.__init__(self)
+    def mkLevelLayers(self, sep=1, axis=2):
+        """
+        sep : separation in normalized units (?)
+        axis : 0, 1, 2 are x, y, z
+
+        """
+        for level in self.npos:
+            if level != 0:
+                self.npos[level][:,axis] += level * sep
+        self.npos_ = n.vstack(self.npos.values())
+        es = []
+        disp = 0
+        for g in range(len(self.gs)):
+            es_ = [(i+disp, j+disp) for i, j in self.gs[g].edges]
+            es.extend(es_)
+            disp += self.gs[g].number_of_nodes()
+        self.edges_ = es
