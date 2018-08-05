@@ -7,6 +7,7 @@ class Parser:
             self.text_ = f.read()
             self.text = self.text_.replace("\t", '')
             self.lines = self.text.split("\n")
+            self.lines = [i.strip() for i in self.lines]
 
 class GMLParser(Parser):
     def __init__(self, fpath):
@@ -19,8 +20,9 @@ class GMLParser(Parser):
         for line in self.lines:
             if line.startswith('id '):
                 self.nodes.append(int(line.split(' ')[1]))
-        missing = [i for i in range(max(self.nodes)+1) if i not in self.nodes]
-        assert len(missing) == 0
+        # missing = [i for i in range(max(self.nodes)+1) if i not in self.nodes]
+        # assert len(missing) == 0
+        # does not follow the pattern: '/home/renato/Dropbox/Public/doc/avlab/OrlandoCoelho22022014_anon.gml'
 
     def _getEdges(self):
         self.edges = []
