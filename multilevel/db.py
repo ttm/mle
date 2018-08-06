@@ -1,6 +1,6 @@
 from pymodm import connect, MongoModel, fields
 import pickle
-from .utils import absoluteFilePaths
+from .utils import absoluteFilePaths, fpath
 from .parsers import GMLParser
 
 class Network(MongoModel):
