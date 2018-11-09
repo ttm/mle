@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, render_template
+from flask_cors import CORS
 import numpy as n, networkx as x
 import sys
 keys=tuple(sys.modules.keys())
@@ -8,6 +9,7 @@ for key in keys:
 import multilevel as ml
 
 app = Flask(__name__)
+CORS(app)
 
 @app.route("/")
 def index():
@@ -84,11 +86,11 @@ def netlevels(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3)
     mls = ml.basic.MLS2()
     mls.setLayout(layout)
     mls.setDim(dim)
-    mls.setNetwork(ml.parsers.GMLParser(mls.nets[net]).g)
-    mls.mkMetaNetwork(level, method)
-    mls.mkLayout(level)
-    mls.mkLayout(level+1)
-    mls.mkLevelLayers(float(sep), axis)
+    mls.setNetwork(ml.parsers.GMLParser(mls.nets[net]).g)  # set o _id da network
+    mls.mkMetaNetwork(level, method)  # buscar tb se tiver feito
+    mls.mkLayout(level)  # buscar, soh fazer se n estiver pronto
+    mls.mkLayout(level+1)  # idem
+    mls.mkLevelLayers(float(sep), axis)  # aqui aplicar sempre
     nodepos = [i.tolist() for i in mls.npos_]
     edges = mls.edges_
     return jsonify({'nodes': nodepos, 'edges': edges})

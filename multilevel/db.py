@@ -1,8 +1,55 @@
 from pymodm import connect, MongoModel, fields
-import pickle
+import pickle, pymongo
 from .utils import absoluteFilePaths, fpath
 from .parsers import GMLParser
 
+class Connection:
+    def __init__(self):
+        mclient = pymongo.MongoClient("mongodb://localhost:27017/")
+        self.db = mclient['boilerplate']
+        self.layout = self.db['layouts']
+        self.layers = self.db['layers']
+
+    def getNetLayout(self, netid, layout, dimensions, method, layer):
+        """
+        If layer == 0, method does not matter.
+
+        In all other cases, each combination of these parameters gives
+        us a new item in the collection.
+        """
+        if layer > 0:
+            query = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'method': method, 'layer': layer}
+        else:
+            query = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'layer': layer}
+        positions = self.layouts.find(query, {'positions': 1})
+        return positions
+
+    def setNetLayout(self, netid, layout, dimensions, method, layer, positions):
+        if layer > 0:
+            data = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'method': method, 'layer': layer, 'positions': positions}
+        else:
+            data = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'layer': layer, 'positions': positions}
+        self.layouts.insert_one(data)
+
+    def getNetLayer(self, netid, method, layer):
+        if layer == 0:
+            print('it is the network itself')
+        else:
+            query = {'netid': netid, 'method': method, 'layer': layer}
+        network = self.layers(query, {'network': 1})
+        return network
+
+    def setNetLayer(self, netid, method, layer, network_coarsened):
+        if layer == 0:
+            print('it is the network itself')
+        else:
+            data = {'netid': netid, 'method': method, 'layer': layer, 'network': network_coarsened}
+        self.layers.insert_one(data)
+
+
+
+
+### Deprecated:
 class Network(MongoModel):
     network = fields.BinaryField()
     filename = fields.CharField()
