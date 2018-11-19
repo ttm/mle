@@ -1,5 +1,6 @@
 from pymodm import connect, MongoModel, fields
 import pickle, pymongo
+from bson.objectid import ObjectId
 from .utils import absoluteFilePaths, fpath
 from .parsers import GMLParser
 
@@ -7,8 +8,9 @@ class Connection:
     def __init__(self):
         mclient = pymongo.MongoClient("mongodb://localhost:27017/")
         self.db = mclient['boilerplate']
-        self.layout = self.db['layouts']
+        self.layouts = self.db['layouts']
         self.layers = self.db['layers']
+        self.netuploads = self.db['netuploads']
 
     def getNetLayout(self, netid, layout, dimensions, method, layer):
         """
@@ -21,7 +23,7 @@ class Connection:
             query = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'method': method, 'layer': layer}
         else:
             query = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'layer': layer}
-        positions = self.layouts.find(query, {'positions': 1})
+        positions = self.layouts.find_one(query, {'positions': 1})
         return positions
 
     def setNetLayout(self, netid, layout, dimensions, method, layer, positions):
@@ -34,9 +36,13 @@ class Connection:
     def getNetLayer(self, netid, method, layer):
         if layer == 0:
             print('it is the network itself')
+            query = {'_id': ObjectId(netid)}
+            network_ = self.netuploads.find_one(query)
+            network = ml.parsers.GMLParserDB(network_['data'])
         else:
             query = {'netid': netid, 'method': method, 'layer': layer}
-        network = self.layers(query, {'network': 1})
+            network_ = self.layers.find_one(query, {'network': 1})
+            network = pickle.loads(network_['data'])
         return network
 
     def setNetLayer(self, netid, method, layer, network_coarsened):
