@@ -2,7 +2,7 @@ from pymodm import connect, MongoModel, fields
 import pickle, pymongo
 from bson.objectid import ObjectId
 from .utils import absoluteFilePaths, fpath
-from .parsers import GMLParser
+from .parsers import GMLParser, GMLParserDB
 
 class Connection:
     def __init__(self):
@@ -51,6 +51,14 @@ class Connection:
         else:
             data = {'netid': netid, 'method': method, 'layer': layer, 'network': network_coarsened}
         self.layers.insert_one(data)
+
+    def getNet(self, netid):
+        query = {'_id': ObjectId(netid)}
+        print(query)
+        network_ = self.netuploads.find_one(query)
+        print(network_)
+        network = GMLParserDB(network_['data']).g
+        return network
 
 
 

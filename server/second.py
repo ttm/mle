@@ -17,9 +17,9 @@ db = ml.db.Connection()
 def netlevels(net, layout, dim=3, links=1, layers=1, method='mod', sep=1, axis=3):
     # modularity, min_cut, center-periphery, hubs-int-per, 
     print(net, 'ok')
-    # para cada nivel:
+    # para o nível zero, sem coarsening:
     nets = [ml.io.getNetworkAndLayout(net, method, layer, layout, dim, net_prev=None)]
-
+    # para cada nível:
     for layer in range(layers+1):
         # verifica se existe a rede ou precisa fazer (coarsen) e salvar
         tnet = db.getNetLayer(net, method, layer, nets[-1][0])

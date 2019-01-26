@@ -95,6 +95,23 @@ def netlevels(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3)
     edges = mls.edges_
     return jsonify({'nodes': nodepos, 'edges': edges})
 
+db = ml.db.Connection()
+
+@app.route("/netlevelsFoo/<net>/<layout>/<int:dim>/<int:level>/<method>/<sep>/<int:axis>/")
+def netlevelsFoo(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3):
+    # modularity, min_cut, center-periphery, hubs-int-per, 
+    mls = ml.basic.MLS2()
+    mls.setLayout(layout)
+    mls.setDim(dim)
+    mls.setNetwork(db.getNet(net))  # apenas pegar a rede pelo ID
+    mls.mkMetaNetwork(level, method)  # buscar tb se tiver feito
+    mls.mkLayout(level)  # buscar, soh fazer se n estiver pronto
+    mls.mkLayout(level+1)  # idem
+    mls.mkLevelLayers(float(sep), axis)  # aqui aplicar sempre
+    nodepos = [i.tolist() for i in mls.npos_]
+    edges = mls.edges_
+    return jsonify({'nodes': nodepos, 'edges': edges})
+
 @app.route("/plotlevels/<int:net>/<layout>/<int:dim>/<int:links>/<int:level>/<method>/<sep>/<axis>/")
 def plotlevels(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3):
     return render_template('basicURLMLInterface2.html', net=net, layout=layout, dim=dim, links=links, ml=ml, levels=level, method=method, sep=sep, axis=axis)
