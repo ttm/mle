@@ -1,4 +1,19 @@
-import networkx as x, numpy as n
+import networkx as x, numpy as n, pymongo, pickle
+from bson.objectid import ObjectId
+
+class Connection:
+    def __init__(self):
+        mclient = pymongo.MongoClient("mongodb://localhost:27017/")
+        self.db = mclient['boilerplate']
+        # the networks collection keeps both uncoarsened and coarsened networks
+        # a layer is a network with specific layer number and coarsening method
+        # layer == 0 for the original (uncoarsened) network
+        self.networks = self.db['networks']
+        # any network may have a layout given by the network _id and the layout method
+        self.layouts = self.db['layouts']
+
+db = Connection()
+
 class MLS:
     """
     Multilevel Strategy class
@@ -188,10 +203,14 @@ def mkLayout(netid, method, layout, dimensions, layer, network):
         positions = n.array([l[i] for i in network.nodes])
     else:
         # query for layout of precedent layer
-        query = {'uncoarsened_network': ObjectId(netid), 'layer': layer-1, 'coarsen_method': method}
-        network_id = self.networks.find_one(query, {'_id': 1})
+        if layer - 1 > 0:
+            query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1, 'coarsen_method': method}
+        else:
+            query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1}
+        network_id = db.networks.find_one(query, {'_id': 1})
         query2 = {'network': network_id['_id'], 'layout_name': layout, 'dimensions': dimensions}
-        layout_ = self.layouts.find_one(query2)
+        print(query2, layer, 'QUERY2')
+        layout_ = db.layouts.find_one(query2)
         if not layout_:
             raise LookupError('layout of previous level should have been created beforehand')
         prev_positions = pickle.loads(layout_['data'])
@@ -206,3 +225,53 @@ def mkLayout(netid, method, layout, dimensions, layer, network):
                 raise LookupError('found metanode that came from no node...')
         positions = n.array(pos_)
     return positions
+
+def mkMetaNetwork(network, method):
+    meta_network_ = mkMatch(network, method)
+    meta_network = mkCollapse(network, meta_network_)
+    return meta_network
+
+def mkMatch(network, method):
+    g_ = network
+    if 'kclick' in method:  # k-click communities
+        k_ = int(method.replace('kclick', ''))
+        svs = [i for i in x.algorithms.community.k_clique_communities(g_, k_)]
+        gg = x.Graph()
+        for i, sv in enumerate(svs):
+            gg.add_node(i, weight=len(sv), children=sv)
+    elif method == 'lab':  # label propagation
+        svs = [i for i in x.algorithms.community.label_propagation_communities(g_)]
+        gg = x.Graph()
+        for i, sv in enumerate(svs):
+            gg.add_node(i, weight=len(sv), children=sv)
+    elif method == 'cp':
+        sub = [i for i in x.connected_component_subgraphs(g_)]
+        g = sub[0]
+        per = set(x.periphery(g))
+        if len(sub) > 1:
+            for per_ in sub[1:]:
+                per.update(per_.nodes())
+        cen = set(x.center(g))
+        pc = per.union(cen)
+        nodes = set(g.nodes())
+        inter = nodes.difference(pc)
+        gg = x.Graph()
+        gg.add_node(0, label='center', weight=len(cen), children=cen)
+        gg.add_node(1, label='intermediary', weight=len(inter), children=inter)
+        gg.add_node(2, label='periphery', weight=len(per), children=per)
+    return gg  # meta-network
+
+def mkCollapse(network, meta_network):
+    nmn = {}
+    for node_ in meta_network:
+        ch = meta_network.nodes[node_]['children']
+        ad = dict.fromkeys(ch, node_)
+        nmn.update(ad)
+    for e in network.edges():
+        mv1 = nmn[e[0]]
+        mv2 = nmn[e[1]]
+        if mv2 not in meta_network[mv1]:
+            meta_network.add_edge(mv1, mv2, weight = 0)
+        meta_network[mv1][mv2]['weight'] += 1
+    return meta_network
+

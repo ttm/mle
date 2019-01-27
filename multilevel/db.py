@@ -3,7 +3,7 @@ import pickle, pymongo
 from bson.objectid import ObjectId
 from .utils import absoluteFilePaths, fpath
 from .parsers import GMLParser, GMLParserDB, parseNetworkData
-from .basic import mkLayout
+from .basic import mkLayout, mkMetaNetwork
 
 class Connection:
     def __init__(self):
@@ -58,7 +58,7 @@ class Connection:
             positions = mkLayout(netid, method, layout, dimensions, layer, network)
             self.layouts.insert_one({
                 'data': pickle.dumps(positions),
-                'network': network_id,
+                'network': network_id['_id'],
                 'layout_name': layout,
                 'dimensions': dimensions
             })

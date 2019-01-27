@@ -1,4 +1,5 @@
 import networkx as x
+import pickle
 
 class GMLParserGeneric:
     def __init__(self):
