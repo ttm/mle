@@ -171,3 +171,38 @@ class MLS2(MLS1):
             es.extend(es_)
             disp += self.gs[g].number_of_nodes()
         self.edges_ = es
+
+def mkLayout(netid, method, layout, dimensions, layer, network):
+    if layer == 0:
+        layouts = {
+                'circular' : x.layout.circular_layout,
+                'fruch' : x.layout.fruchterman_reingold_layout, # same as spring?
+                'kamada' : x.layout.kamada_kawai_layout, # cool
+                'random' : x.layout.random_layout,
+                'shell' : x.layout.shell_layout, # arrumar 3d
+                'spectral' : x.layout.spectral_layout,
+                'spring' : x.layout.spring_layout,
+        }
+        assert layout in layouts
+        l = layouts[layout](network, dim=dimensions)
+        positions = n.array([l[i] for i in network.nodes])
+    else:
+        # query for layout of precedent layer
+        query = {'uncoarsened_network': ObjectId(netid), 'layer': layer-1, 'coarsen_method': method}
+        network_id = self.networks.find_one(query, {'_id': 1})
+        query2 = {'network': network_id['_id'], 'layout_name': layout, 'dimensions': dimensions}
+        layout_ = self.layouts.find_one(query2)
+        if not layout_:
+            raise LookupError('layout of previous level should have been created beforehand')
+        prev_positions = pickle.loads(layout_['data'])
+        # make mean
+        pos_ = []
+        for node in network.nodes():
+            # if node has children:
+            if len(network.nodes[node]['children']) > 0:
+                pos = prev_positions[n.array(list(network.nodes[node]['children']))]
+                pos_.append(pos.mean(0))
+            else:
+                raise LookupError('found metanode that came from no node...')
+        positions = n.array(pos_)
+    return positions

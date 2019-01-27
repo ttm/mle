@@ -52,3 +52,11 @@ class GMLParserDB(GMLParserGeneric):
         self.lines = [i.strip() for i in self.lines]
         GMLParserGeneric.__init__(self)
 
+def parseNetworkData(network_item):
+    ni = network_item
+    if ni['layer'] == 0 and ni['filename'].endswith('.gml'):
+        return GMLParserDB(ni['data']).g
+    elif ni['layer'] > 0:
+        return pickle.loads(ni['data'])
+    else:
+        raise NotImplementedError('only GML and pickle.dumps of networkX graphs are currently implemented')

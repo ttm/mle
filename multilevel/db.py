@@ -2,60 +2,73 @@ from pymodm import connect, MongoModel, fields
 import pickle, pymongo
 from bson.objectid import ObjectId
 from .utils import absoluteFilePaths, fpath
-from .parsers import GMLParser, GMLParserDB
+from .parsers import GMLParser, GMLParserDB, parseNetworkData
+from .basic import mkLayout
 
 class Connection:
     def __init__(self):
         mclient = pymongo.MongoClient("mongodb://localhost:27017/")
         self.db = mclient['boilerplate']
+        # the networks collection keeps both uncoarsened and coarsened networks
+        # a layer is a network with specific layer number and coarsening method
+        # layer == 0 for the original (uncoarsened) network
+        self.networks = self.db['networks']
+        # any network may have a layout given by the network _id and the layout method
         self.layouts = self.db['layouts']
-        self.layers = self.db['layers']
-        self.netuploads = self.db['netuploads']
-
-    def getNetLayout(self, netid, layout, dimensions, method, layer):
-        """
-        If layer == 0, method does not matter.
-
-        In all other cases, each combination of these parameters gives
-        us a new item in the collection.
-        """
-        if layer > 0:
-            query = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'method': method, 'layer': layer}
-        else:
-            query = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'layer': layer}
-        positions = self.layouts.find_one(query, {'positions': 1})
-        return positions
-
-    def setNetLayout(self, netid, layout, dimensions, method, layer, positions):
-        if layer > 0:
-            data = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'method': method, 'layer': layer, 'positions': positions}
-        else:
-            data = {'netid': netid, 'layout': layout, 'dimensions': dimensions, 'layer': layer, 'positions': positions}
-        self.layouts.insert_one(data)
 
     def getNetLayer(self, netid, method, layer):
-        if layer == 0:
-            print('it is the network itself')
-            query = {'_id': ObjectId(netid)}
-            network_ = self.netuploads.find_one(query)
-            network = ml.parsers.GMLParserDB(network_['data'])
+        if layer > 0:
+            query = {'uncoarsened_network': ObjectId(netid), 'layer': layer, 'coarsen_method': method}
         else:
-            query = {'netid': netid, 'method': method, 'layer': layer}
-            network_ = self.layers.find_one(query, {'network': 1})
-            network = pickle.loads(network_['data'])
+            query = {'uncoarsened_network': ObjectId(netid), 'layer': layer}
+        network_ = self.networks.find_one(query)
+        print(query, 'QUERY')
+        if network_:
+            network = parseNetworkData(network_)
+        else:
+            if layer - 1 > 0:
+                query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1, 'coarsen_method': method}
+            else:
+                query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1}
+            previous_network_ = self.networks.find_one(query)
+            previous_network = parseNetworkData(previous_network_)
+            network = mkMetaNetwork(previous_network, method)
+            self.networks.insert_one({
+                'data': pickle.dumps(network),
+                'uncoarsened_network': ObjectId(netid),
+                'coarsen_method': method,
+                'layer': layer,
+                'filename': previous_network_['filename']
+            })
         return network
 
-    def setNetLayer(self, netid, method, layer, network_coarsened):
-        if layer == 0:
-            print('it is the network itself')
+    def getNetLayout(self, netid, method, layer, layout, dimensions, network):
+        # find _id of network from netid, method, layer
+        # find layout. Make and write it if not available
+        if layer > 0:
+            query = {'uncoarsened_network': ObjectId(netid), 'layer': layer, 'coarsen_method': method}
         else:
-            data = {'netid': netid, 'method': method, 'layer': layer, 'network': network_coarsened}
-        self.layers.insert_one(data)
+            query = {'uncoarsened_network': ObjectId(netid), 'layer': layer}
+        network_id = self.networks.find_one(query, {'_id': 1})
+        query2 = {'network': network_id['_id'], 'layout_name': layout, 'dimensions': dimensions}
+        layout_ = self.layouts.find_one(query2)
+        if layout_:
+            positions = pickle.loads(layout_['data'])
+        else:
+            positions = mkLayout(netid, method, layout, dimensions, layer, network)
+            self.layouts.insert_one({
+                'data': pickle.dumps(positions),
+                'network': network_id,
+                'layout_name': layout,
+                'dimensions': dimensions
+            })
+        return positions
+
 
     def getNet(self, netid):
         query = {'_id': ObjectId(netid)}
         print(query)
-        network_ = self.netuploads.find_one(query)
+        network_ = self.networks.find_one(query)
         print(network_)
         network = GMLParserDB(network_['data']).g
         return network

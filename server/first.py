@@ -112,6 +112,21 @@ def netlevelsFoo(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis
     edges = mls.edges_
     return jsonify({'nodes': nodepos, 'edges': edges})
 
+@app.route("/netlevelsDB/<netid>/<layout>/<int:dim>/<int:nlayers>/<method>/<sep>/<int:axis>/")
+def netlevelsDB(netid, layout, dim=3, links=1, nlayers=1, method='mod', sep=1, axis=3):
+    layers = []
+    # nlayers >= 1, if == 1 there is no coarsening
+    for layer in range(nlayers):
+        # two lists: one of node ids, another of tuples of ids of each link:
+        tnet = db.getNetLayer(netid, method, layer)
+        # a dict { node_id: position (x, y, z) } as { key: value }
+        tlayout = db.getNetLayout(netid, method, layer, layout, dim, tnet)
+        # layers.append( {'network': tnet, 'layout': tlayout} )
+        nodepos = tlayout.tolist()
+        edges = [(i, j) for i, j in tnet.edges]
+        layers.append( {'nodes': nodepos, 'edges': edges} )
+    return jsonify(layers)
+
 @app.route("/plotlevels/<int:net>/<layout>/<int:dim>/<int:links>/<int:level>/<method>/<sep>/<axis>/")
 def plotlevels(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3):
     return render_template('basicURLMLInterface2.html', net=net, layout=layout, dim=dim, links=links, ml=ml, levels=level, method=method, sep=sep, axis=axis)
