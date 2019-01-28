@@ -38,7 +38,8 @@ class Connection:
                 'uncoarsened_network': ObjectId(netid),
                 'coarsen_method': method,
                 'layer': layer,
-                'filename': previous_network_['filename']
+                'filename': previous_network_['filename'] + '-' + str(layer),
+                'urlized': previous_network_['urlized'] + '-' + str(layer)
             })
         return network
 

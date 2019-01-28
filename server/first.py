@@ -118,6 +118,7 @@ def netlevelsDB(netid, layout, dim=3, links=1, nlayers=1, method='mod', sep=1, a
     # nlayers >= 1, if == 1 there is no coarsening
     for layer in range(nlayers):
         # two lists: one of node ids, another of tuples of ids of each link:
+        print('layer')
         tnet = db.getNetLayer(netid, method, layer)
         # a dict { node_id: position (x, y, z) } as { key: value }
         tlayout = db.getNetLayout(netid, method, layer, layout, dim, tnet)

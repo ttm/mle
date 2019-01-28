@@ -227,15 +227,15 @@ def mkLayout(netid, method, layout, dimensions, layer, network):
     return positions
 
 def mkMetaNetwork(network, method):
-    meta_network_ = mkMatch(network, method)
-    meta_network = mkCollapse(network, meta_network_)
+    meta_network_ = mkMatch(network, method)  # meta nodes
+    meta_network = mkCollapse(network, meta_network_)  # + meta links
     return meta_network
 
 def mkMatch(network, method):
     g_ = network
     if 'kclick' in method:  # k-click communities
-        k_ = int(method.replace('kclick', ''))
-        svs = [i for i in x.algorithms.community.k_clique_communities(g_, k_)]
+        # k_ = int(method.replace('kclick', ''))
+        svs = [i for i in x.algorithms.community.k_clique_communities(g_, 10)]
         gg = x.Graph()
         for i, sv in enumerate(svs):
             gg.add_node(i, weight=len(sv), children=sv)
@@ -267,6 +267,7 @@ def mkCollapse(network, meta_network):
         ch = meta_network.nodes[node_]['children']
         ad = dict.fromkeys(ch, node_)
         nmn.update(ad)
+    print('nmn', nmn)
     for e in network.edges():
         mv1 = nmn[e[0]]
         mv2 = nmn[e[1]]
