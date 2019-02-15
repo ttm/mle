@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, render_template
 from flask_cors import CORS
 import numpy as n, networkx as x
-import sys
+import sys, json
 keys=tuple(sys.modules.keys())
 for key in keys:
     if ("ml" in key) or ("multilevel" in key):
@@ -10,6 +10,30 @@ import multilevel as ml
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route("/evolvingNet/<netid>/")
+def evolvingNet(netid):
+    # return the {nodes:[], edges:[], ntransactions: N} structure
+    with open('../utils/here.enet', 'r') as f:
+        edges_ = json.load(f)
+
+    net = ml.utils.mkNetFromEdges(edges_)
+    nodes = list(net.nodes())
+    edges = list(net.edges())
+    ntrans = len(edges_)
+    return jsonify({
+        'nodes': nodes,
+        'edges': edges,
+        'ntransactions': ntrans
+    })
+
+@app.route("/evolvingAnalysis/<netid>/<window_size>/<step>/<first_message>/<last_message>/")
+def evolvingAnalysis():
+    # return the {degrees:{node: N}, edges:[], ntransactions: N} structure
+    # for each snapshot
+    # maybe make other measures as well
+    # make the analysis data reuse through mongo
+    return 'ok man in pyserver'
 
 @app.route("/")
 def index():
