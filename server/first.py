@@ -19,12 +19,11 @@ def evolvingNet(netid):
 
     net = ml.utils.mkNetFromEdges(edges_)
     nodes = list(net.nodes())
-    edges = list(net.edges())
-    ntrans = len(edges_)
+    edges = list(net.edges(data=True))
     return jsonify({
         'nodes': nodes,
         'edges': edges,
-        'ntransactions': ntrans
+        'transactions': edges_
     })
 
 @app.route("/evolvingAnalysis/<netid>/<window_size>/<step>/<first_message>/<last_message>/")
