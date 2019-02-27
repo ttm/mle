@@ -27,7 +27,7 @@ if you are hacking selfcomp:
   $ export FLASK_ENV=development
 
 and start the server with
-  $ flask run
+  $ flask run --host=0.0.0.0 --port=80
 
 works with Babylon.js to enable WebGL visualizations.
 

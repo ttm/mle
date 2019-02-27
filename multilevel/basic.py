@@ -267,7 +267,7 @@ def mkCollapse(network, meta_network):
         ch = meta_network.nodes[node_]['children']
         ad = dict.fromkeys(ch, node_)
         nmn.update(ad)
-    print('nmn', nmn)
+    print('nmn', nmn, network.number_of_nodes(), meta_network.number_of_nodes())
     for e in network.edges():
         mv1 = nmn[e[0]]
         mv2 = nmn[e[1]]

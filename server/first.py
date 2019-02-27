@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 import numpy as n, networkx as x
 import sys, json
@@ -10,6 +10,17 @@ import multilevel as ml
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route("/postTest/", methods=['POST'])
+def postTest():
+    # print(data)
+    print(request.form)
+    print(request.form['num'])
+    return jsonify({
+            'me': 'cool',
+            'anum': 1000,
+            'nothernum': float(request.form['num']) + 140
+    })
 
 @app.route("/evolvingNet/<netid>/")
 def evolvingNet(netid):
