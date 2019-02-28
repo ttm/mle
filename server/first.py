@@ -14,12 +14,18 @@ CORS(app)
 @app.route("/postTest/", methods=['POST'])
 def postTest():
     # print(data)
-    print(request.form)
-    print(request.form['num'])
+    print(request.form.getlist('message_range[]'))
+    print(dir(request.form))
+    print(request.form.to_dict())
     return jsonify({
-            'me': 'cool',
-            'anum': 1000,
-            'nothernum': float(request.form['num']) + 140
+        'networks': [
+            {'nodes': [1,2,3], 'edges': [(1,2), (1,3)]},
+            {'nodes': [2,3,5], 'edges': [(2,5), (2,3)]}
+        ],
+        'stats': [
+            {'clust':[.3, .4, .1], 'degree': [2,1,1]},
+            {'clust':[.1, .6, .2], 'degree': [3,2,0]}
+        ]
     })
 
 @app.route("/evolvingNet/<netid>/")
