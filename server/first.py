@@ -14,18 +14,49 @@ CORS(app)
 @app.route("/postTest/", methods=['POST'])
 def postTest():
     # print(data)
-    print(request.form.getlist('message_range[]'))
-    print(dir(request.form))
-    print(request.form.to_dict())
+    mrange = request.form.getlist('message_range[]')
+    mrange = [int(i) for i in mrange]
+    window_size = int(request.form['window_size'])
+    window_sep = int(request.form['window_sep'])
+    with open('../utils/here.enet', 'r') as f:
+        edges_ = json.load(f)
+
+    e = edges_[mrange[0]:mrange[1]+1]
+    count = 0
+    e_ = [e]
+    while count < len(e):
+        chunck = e[count:count+window_size]
+        e_.append(chunck)
+        count += window_sep
+
+    nets = [ml.utils.mkNetFromEdges(ee) for ee in e_]
+
+    networks = []
+    stats = []
+    for nn in nets:
+        nodes = list(nn.nodes())
+        networks.append({'nodes': nodes , 'edges': list(nn.edges(data=True))})
+        d = nn.degree()
+        degree = [d[i] for i in nodes]
+
+        d_ = list(dict(d).items())
+        d_.sort(key = lambda x: -x[1])
+        d_ = [i[0] for i in d_]
+        nh = int(len(d_)*0.05)
+        ni = int(len(d_)*0.15)
+        hs = d_[:nh]
+        is_ = d_[nh:nh+ni]
+        ps = d_[nh+ni:]
+        hip = [hs, is_, ps]
+
+
+        clust = x.clustering(nn)
+        clust_ = [clust[i] for i in nodes]
+        stats.append({'degree': degree, 'clust': clust_, 'hip': hip})
+
     return jsonify({
-        'networks': [
-            {'nodes': [1,2,3], 'edges': [(1,2), (1,3)]},
-            {'nodes': [2,3,5], 'edges': [(2,5), (2,3)]}
-        ],
-        'stats': [
-            {'clust':[.3, .4, .1], 'degree': [2,1,1]},
-            {'clust':[.1, .6, .2], 'degree': [3,2,0]}
-        ]
+        'networks': networks,
+        'stats': stats 
     })
 
 @app.route("/evolvingNet/<netid>/")
