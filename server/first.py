@@ -24,10 +24,12 @@ def postTest():
     e = edges_[mrange[0]:mrange[1]+1]
     count = 0
     e_ = [e]
-    while count < len(e):
+    while count + window_size < len(e):
         chunck = e[count:count+window_size]
         e_.append(chunck)
         count += window_sep
+    chunck = e[count:count+window_size]
+    e_.append(chunck)
 
     nets = [ml.utils.mkNetFromEdges(ee) for ee in e_]
 
