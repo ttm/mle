@@ -1,6 +1,7 @@
+#!/usr/bin/python3
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
-import numpy as n, networkx as x
+import numpy as n, networkx as x, percolation as p
 import sys, json
 keys=tuple(sys.modules.keys())
 for key in keys:
@@ -10,6 +11,133 @@ import multilevel as ml
 
 app = Flask(__name__)
 CORS(app)
+
+@app.route("/postTest2/", methods=['POST'])
+def postTest2():
+    # print(data)
+    mrange = request.form.getlist('message_range[]')
+    mrange = [int(i) for i in mrange]
+    window_size = int(request.form['window_size'])
+    window_sep = int(request.form['window_sep'])
+    sec_method = request.form['sec_method']
+    with open('../utils/here.enet', 'r') as f:
+        edges_ = json.load(f)
+
+    e = edges_[mrange[0]:mrange[1]+1]
+    count = 0
+    e_ = [e]
+    while count + window_size < len(e):
+        chunck = e[count:count+window_size]
+        e_.append(chunck)
+        count += window_sep
+    chunck = e[count:count+window_size]
+    e_.append(chunck)
+
+    nets = [ml.utils.mkNetFromEdges(ee) for ee in e_]
+
+    networks = []
+    stats = []
+    total = n.zeros((6, len(nets)))
+    count = 0
+    fvecs = []
+    evalus = []
+    for nn in nets:
+        nodes = list(nn.nodes())
+        networks.append({'nodes': nodes , 'edges': list(nn.edges(data=True))})
+        d = nn.degree()
+        degree = [d[i] for i in nodes]
+
+        if sec_method == 'Percentages':
+            d_ = list(dict(d).items())
+            d_.sort(key = lambda x: -x[1])
+            d_ = [i[0] for i in d_]
+            nh = int(len(d_)*0.05)
+            ni = int(len(d_)*0.15)
+            hs = d_[:nh]
+            is_ = d_[nh:nh+ni]
+            ps = d_[nh+ni:]
+            hip = [hs, is_, ps]
+        else:
+            class NM: pass
+            nm = NM()
+            dv = nn.degree()
+            nm.degrees_ = list(dict(dv).values())
+            nm.N = nn.number_of_nodes()
+            nm.E = nn.number_of_edges()
+            nm.degrees = dict(nn.degree())
+            sec = p.analysis.sectorialize.NetworkSectorialization(nm, metric='d')
+            hip = sec.sectorialized_agents__[::-1]
+
+        clust = x.clustering(nn)
+        clust_ = [clust[i] for i in nodes]
+
+        k = 30
+        if k > nn.number_of_nodes():
+            k = nn.number_of_nodes() // 2
+        bet = x.betweenness_centrality(nn, k)
+        bet_ = [bet[i] for i in nodes]
+
+        nzero = n.array(degree).nonzero()
+        degree_ = n.array(degree)[nzero]
+        clust__ = n.array(clust_)[nzero]
+        bet__ = n.array(bet_)[nzero]
+
+        degree_mean = n.mean(degree_)
+        degree_std = n.std(degree_)
+        clust_mean = n.mean(clust__)
+        clust_std = n.std(clust__)
+        bet_mean = n.mean(bet__)
+        bet_std = n.std(bet__)
+
+        stats.append({
+            'degree': degree, 'clust': clust_, 'hip': hip,
+            'degree_mean': degree_mean, 'degree_std': degree_std,
+            'clust_mean': clust_mean, 'clust_std': clust_std
+        })
+
+        total[0][count] = degree_mean
+        total[1][count] = degree_std
+        total[2][count] = clust_mean
+        total[3][count] = clust_std
+        total[4][count] = bet_mean
+        total[5][count] = bet_std
+
+        pca = p.analysis.pca.PCA([degree_, clust__, bet__])
+        fvecs.append(pca.feature_vec_)
+        evalus.append(pca.eig_values_)
+
+        count += 1
+    
+    means = total.mean(1)
+    stds = total.std(1)
+    stats[0]['degree_mean_mean'] = means[0]
+    stats[0]['degree_mean_std'] = stds[0]
+    stats[0]['degree_std_mean'] = means[1]
+    stats[0]['degree_std_std'] = stds[1]
+    stats[0]['clust_mean_mean'] = means[2]
+    stats[0]['clust_mean_std'] = stds[2]
+    stats[0]['clust_std_mean'] = means[3]
+    stats[0]['clust_std_std'] = stds[3]
+    stats[0]['bet_mean_mean'] = means[4]
+    stats[0]['bet_mean_std'] = stds[4]
+    stats[0]['bet_std_mean'] = means[5]
+    stats[0]['bet_std_std'] = stds[5]
+
+    fvecs_ = n.hstack(fvecs)
+    evalus_ = n.array(evalus)
+    mean_fv = fvecs_.mean(1)
+    std_fv = fvecs_.std(1)
+    mean_e = evalus_.mean(0)
+    std_e = evalus_.std(0)
+    stats[0]['pca_mean_vec'] =  list(mean_fv)
+    stats[0]['pca_std_vec'] =   list(std_fv)
+    stats[0]['pca_mean_eigv'] = list(mean_e)
+    stats[0]['pca_std_eigv'] =  list(std_e)
+
+    return jsonify({
+        'networks': networks,
+        'stats': stats 
+    })
 
 @app.route("/postTest/", methods=['POST'])
 def postTest():
@@ -35,6 +163,8 @@ def postTest():
 
     networks = []
     stats = []
+    total = n.zeros((4, len(nets)))
+    count = 0
     for nn in nets:
         nodes = list(nn.nodes())
         networks.append({'nodes': nodes , 'edges': list(nn.edges(data=True))})
@@ -54,7 +184,39 @@ def postTest():
 
         clust = x.clustering(nn)
         clust_ = [clust[i] for i in nodes]
-        stats.append({'degree': degree, 'clust': clust_, 'hip': hip})
+
+        nzero = n.array(degree).nonzero()
+        degree_ = n.array(degree)[nzero]
+        clust__ = n.array(clust_)[nzero]
+
+        degree_mean = n.mean(degree_)
+        degree_std = n.std(degree_)
+        clust_mean = n.mean(clust__)
+        clust_std = n.std(clust__)
+
+        stats.append({
+            'degree': degree, 'clust': clust_, 'hip': hip,
+            'degree_mean': degree_mean, 'degree_std': degree_std,
+            'clust_mean': clust_mean, 'clust_std': clust_std
+        })
+
+        total[0][count] = degree_mean
+        total[1][count] = degree_std
+        total[2][count] = clust_mean
+        total[3][count] = clust_std
+        count += 1
+
+    means = total.mean(1)
+    stds = total.std(1)
+    print(len(means), len(stds))
+    stats[0]['degree_mean_mean'] = means[0]
+    stats[0]['degree_mean_std'] = stds[0]
+    stats[0]['degree_std_mean'] = means[1]
+    stats[0]['degree_std_std'] = stds[1]
+    stats[0]['clust_mean_mean'] = means[2]
+    stats[0]['clust_mean_std'] = stds[2]
+    stats[0]['clust_std_mean'] = means[3]
+    stats[0]['clust_std_std'] = stds[3]
 
     return jsonify({
         'networks': networks,
