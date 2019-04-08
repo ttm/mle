@@ -22,3 +22,21 @@ def mkNetFromEdges(edges):
         else:
             g.add_edge(e[0], e[1], weight=1.)
     return g
+
+def mkDiNetFromEdges(edges):
+    g = x.DiGraph()
+    for e in edges:
+        if e[0] in g.nodes():
+            g.node[e[0]]["weight"]+=1
+        else:
+            g.add_node(e[0], weight=1.)
+        if e[1] in g.nodes():
+            g.node[e[1]]["weight"]+=1
+        else:
+            g.add_node(e[1], weight=1.)
+
+        if g.has_edge(e[0], e[1]):
+            g[e[0]][e[1]]["weight"]+=1
+        else:
+            g.add_edge(e[0], e[1], weight=1.)
+    return g
