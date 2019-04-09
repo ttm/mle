@@ -494,7 +494,12 @@ def netlevelsDB(netid, layout, dim=3, links=1, nlayers=1, method='mod', sep=1, a
         # layers.append( {'network': tnet, 'layout': tlayout} )
         nodepos = tlayout.tolist()
         edges = [(i, j) for i, j in tnet.edges]
-        layers.append( {'nodes': nodepos, 'edges': edges} )
+        degrees = list(dict(tnet.degree()).values())
+        clust = list(dict(x.clustering(tnet)).values())
+        layers.append({
+            'nodes': nodepos, 'edges': edges,
+            'degrees': degrees, 'clust': clust
+        })
     return jsonify(layers)
 
 @app.route("/plotlevels/<int:net>/<layout>/<int:dim>/<int:links>/<int:level>/<method>/<sep>/<axis>/")
