@@ -481,8 +481,8 @@ def netlevelsFoo(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis
     edges = mls.edges_
     return jsonify({'nodes': nodepos, 'edges': edges})
 
-@app.route("/netlevelsDB/<netid>/<layout>/<int:dim>/<int:nlayers>/<method>/<sep>/<int:axis>/")
-def netlevelsDB(netid, layout, dim=3, links=1, nlayers=1, method='mod', sep=1, axis=3):
+@app.route("/netlevelsDB/<netid>/<layout>/<int:dim>/<int:nlayers>/<method>/<int:axis>/")
+def netlevelsDB(netid, layout, dim=3, links=1, nlayers=1, method='mod', axis=3):
     layers = []
     # nlayers >= 1, if == 1 there is no coarsening
     for layer in range(nlayers):
