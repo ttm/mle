@@ -481,13 +481,35 @@ def netlevelsFoo(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis
     edges = mls.edges_
     return jsonify({'nodes': nodepos, 'edges': edges})
 
+@app.route("/netlevelDB/<netid>/<layout>/<int:dim>/<int:layer>/<method>/<int:axis>/")
+def netlevelDB(netid, layout, dim=3, layer=0, method='mod', axis=3):
+    # two lists: one of node ids, another of tuples of ids of each link:
+    tnet = db.getNetLayer(netid, method, layer)
+    # a dict { node_id: position (x, y, z) } as { key: value }
+    tlayout = db.getNetLayout(netid, method, layer, layout, dim, tnet)
+    # layers.append( {'network': tnet, 'layout': tlayout} )
+    nodepos = tlayout.tolist()
+    edges = [(i, j) for i, j in tnet.edges]
+    degrees = list(dict(tnet.degree()).values())
+    clust = list(dict(x.clustering(tnet)).values())
+    if layer > 0:
+        children = [list(tnet.nodes[node]['children']) for node in tnet]
+        print('=============> ', type(children[0]))
+    else:
+        children = [[]] * len(clust)
+    layer_ = {
+        'nodes': nodepos, 'edges': edges,
+        'children': children,
+        'degrees': degrees, 'clust': clust
+    }
+    return jsonify(layer_)
+
 @app.route("/netlevelsDB/<netid>/<layout>/<int:dim>/<int:nlayers>/<method>/<int:axis>/")
 def netlevelsDB(netid, layout, dim=3, links=1, nlayers=1, method='mod', axis=3):
     layers = []
     # nlayers >= 1, if == 1 there is no coarsening
     for layer in range(nlayers):
         # two lists: one of node ids, another of tuples of ids of each link:
-        print('layer')
         tnet = db.getNetLayer(netid, method, layer)
         # a dict { node_id: position (x, y, z) } as { key: value }
         tlayout = db.getNetLayout(netid, method, layer, layout, dim, tnet)
