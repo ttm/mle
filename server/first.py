@@ -496,8 +496,14 @@ def netlevelsDB(netid, layout, dim=3, links=1, nlayers=1, method='mod', axis=3):
         edges = [(i, j) for i, j in tnet.edges]
         degrees = list(dict(tnet.degree()).values())
         clust = list(dict(x.clustering(tnet)).values())
+        if layer > 0:
+            children = [list(tnet.nodes[node]['children']) for node in tnet]
+            print('=============> ', type(children[0]))
+        else:
+            children = [[]] * len(clust)
         layers.append({
             'nodes': nodepos, 'edges': edges,
+            'children': children,
             'degrees': degrees, 'clust': clust
         })
     return jsonify(layers)
