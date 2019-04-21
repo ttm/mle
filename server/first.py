@@ -2,7 +2,7 @@
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 import numpy as n, networkx as x, percolation as p
-import sys, json
+import sys, json, os
 keys=tuple(sys.modules.keys())
 for key in keys:
     if ("ml" in key) or ("multilevel" in key):
@@ -11,6 +11,76 @@ import multilevel as ml
 
 app = Flask(__name__)
 CORS(app)
+
+layouts = {
+        'circular' : x.layout.circular_layout,
+        'fruch' : x.layout.fruchterman_reingold_layout, # same as spring?
+        'kamada' : x.layout.kamada_kawai_layout, # cool
+        'random' : x.layout.random_layout,
+        'shell' : x.layout.shell_layout, # arrumar 3d
+        'spectral' : x.layout.spectral_layout,
+        'spring' : x.layout.spring_layout,
+        }
+
+@app.route("/biML/", methods=['POST'])
+def biML():
+    print(request.form)
+    
+    reduction = request.form.getlist('bi[reduction][]')
+    max_levels = request.form.getlist('bi[max_levels][]')
+    global_min_vertices = request.form.getlist('bi[global_min_vertices][]')
+    matching = request.form.getlist('bi[matching][]')
+    similarity = request.form.getlist('bi[similarity][]')
+    upper_bound = request.form.getlist('bi[upper_bound][]')
+    itr = request.form.getlist('bi[itr][]')
+    tolerance = request.form.getlist('bi[tolerance][]')
+
+    layout = request.form['layout']
+    dim = int(request.form['dim'])
+
+    fname = './mlpb/input/input-moreno.json'
+    with open(fname, 'r') as f:
+        c = json.load(f)
+
+    tdir = './mlpb/apple'
+    c['directory'] = tdir
+    c['input'] = './mlpb/input/moreno.ncol'
+
+    c['reduction_factor'] = [float(i) for i in reduction]
+    c['max_levels'] = [int(i) for i in max_levels]
+    c['global_min_vertices'] = [int(i) for i in global_min_vertices]
+    c['matching'] = matching
+    c['similarity'] = similarity
+    c['upper_bound'] = [float(i) for i in upper_bound]
+    c['itr'] = [int(i) for i in itr]
+    c['tolerance'] = [float(i) for i in tolerance]
+
+    fname2 = './mlpb/input/input-moreno3.json'
+    with open(fname2, 'w') as f:
+        json.dump(c, f)
+
+    os.system('python3 ./mlpb/coarsening.py -cnf ' + fname2)
+
+    fnames = [i for i in os.listdir(tdir) if i.endswith('.ncol')]
+
+    layers = []
+    for fname in fnames:
+        tnet = ml.parsers.parseBiNcol(tdir + '/' + fname)
+        l = layouts[layout](tnet, dim=dim)
+        tlayout = n.array([l[i] for i in tnet.nodes])
+
+        nodepos = tlayout.tolist()
+        edges = [(i, j) for i, j in tnet.edges]
+        degrees = list(dict(tnet.degree()).values())
+        clust = list(dict(x.clustering(tnet)).values())
+        layer_ = {
+            'nodes': nodepos, 'edges': edges,
+            'children': [[]] * len(clust),
+            'degrees': degrees, 'clust': clust
+        }
+        layers.append(layer_)
+
+    return jsonify(layers)
 
 @app.route("/postTest3/", methods=['POST'])
 def postTest3():
@@ -414,15 +484,6 @@ nets = [
         '/home/renato/Dropbox/Public/doc/vaquinha/FASE1/LarissaAnzoateguihuge_1760577842_2013_02_20_02_07_f297e5c8675b72e87da409b2629dedb3.gml',
         '/home/renato/Dropbox/Public/doc/vaquinha/FASE1/PedroRochaAttaktorZeros10032013.gml',
        ]
-layouts = {
-        'circular' : x.layout.circular_layout,
-        'fruch' : x.layout.fruchterman_reingold_layout, # same as spring?
-        'kamada' : x.layout.kamada_kawai_layout, # cool
-        'random' : x.layout.random_layout,
-        'shell' : x.layout.shell_layout, # arrumar 3d
-        'spectral' : x.layout.spectral_layout,
-        'spring' : x.layout.spring_layout,
-        }
 @app.route("/plot/<int:net>/<layout>/<int:dim>/<int:links>/")
 def plot(net, layout, dim=3, links=1):
     return render_template('basicURLInterface.html', net=net, layout=layout, dim=dim, links=links)
@@ -481,8 +542,8 @@ def netlevelsFoo(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis
     edges = mls.edges_
     return jsonify({'nodes': nodepos, 'edges': edges})
 
-@app.route("/netlevelDB/<netid>/<layout>/<int:dim>/<int:layer>/<method>/<int:axis>/")
-def netlevelDB(netid, layout, dim=3, layer=0, method='mod', axis=3):
+@app.route("/netlevelDB/<netid>/<layout>/<int:dim>/<int:layer>/<method>/")
+def netlevelDB(netid, layout, dim=3, layer=0, method='mod'):
     # two lists: one of node ids, another of tuples of ids of each link:
     tnet = db.getNetLayer(netid, method, layer)
     # a dict { node_id: position (x, y, z) } as { key: value }

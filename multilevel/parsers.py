@@ -1,4 +1,4 @@
-import networkx as x
+import networkx as x, numpy as n
 import pickle
 
 class GMLParserGeneric:
@@ -61,3 +61,17 @@ def parseNetworkData(network_item):
         return pickle.loads(ni['data'])
     else:
         raise NotImplementedError('only GML and pickle.dumps of networkX graphs are currently implemented')
+
+def parseBiNcol(fname):
+    data = n.loadtxt(fname, skiprows=0, dtype=str)
+    g = x.Graph()
+    for row in data:
+        v1, v2, w = [int(i) for i in row]
+        if v1 not in g.nodes():
+            g.add_node(v1, ntype=0)
+        if v2 not in g.nodes():
+            g.add_node(v2, ntype=1)
+        g.add_edge(v1, v2, weight=w)
+    return g
+
+
