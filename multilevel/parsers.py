@@ -57,15 +57,23 @@ def parseNetworkData(network_item):
     ni = network_item
     if ni['layer'] == 0 and ni['filename'].endswith('.gml'):
         return GMLParserDB(ni['data']).g
+    if ni['layer'] == 0 and ni['filename'].endswith('.ncol'):
+        return parseBiNcol(ni['data'])
     elif ni['layer'] > 0:
         return pickle.loads(ni['data'])
     else:
         raise NotImplementedError('only GML and pickle.dumps of networkX graphs are currently implemented')
 
 def parseBiNcol(fname):
-    data = n.loadtxt(fname, skiprows=0, dtype=str)
+    if not fname.endswith('.ncol'):
+        data = [[int(j) for j in i.split(' ') if i] for i in fname.split('\n')]
+    else:
+        data = n.loadtxt(fname, skiprows=0, dtype=str)
     g = x.Graph()
     for row in data:
+        if not row:
+            continue
+        print(row, 'row')
         v1, v2, w = [int(i) for i in row]
         if v1 not in g.nodes():
             g.add_node(v1, ntype=0)

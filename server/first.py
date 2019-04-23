@@ -22,6 +22,66 @@ layouts = {
         'spring' : x.layout.spring_layout,
         }
 
+@app.route("/biMLDB/", methods=['POST'])
+def biMLDB():
+
+    reduction = request.form.getlist('bi[reduction][]')
+    max_levels = request.form.getlist('bi[max_levels][]')
+    global_min_vertices = request.form.getlist('bi[global_min_vertices][]')
+    matching = request.form.getlist('bi[matching][]')
+    similarity = request.form.getlist('bi[similarity][]')
+    upper_bound = request.form.getlist('bi[upper_bound][]')
+    itr = request.form.getlist('bi[itr][]')
+    tolerance = request.form.getlist('bi[tolerance][]')
+
+    params = locals()
+
+    netid = request.form['netid']
+    layout = request.form['layout']
+    dim = int(request.form['dim'])
+    layer = int(request.form['layer'])
+
+    print(params)
+
+    fname = './mlpb/input/input-moreno.json'
+    with open(fname, 'r') as f:
+        c = json.load(f)
+
+    tdir = './mlpb/apple'
+    c['directory'] = tdir
+    c['input'] = './mlpb/input/moreno.ncol'
+
+    c['reduction_factor'] = [float(i) for i in reduction]
+    c['max_levels'] = [int(i) for i in max_levels]
+    c['global_min_vertices'] = [int(i) for i in global_min_vertices]
+    c['matching'] = matching
+    c['similarity'] = similarity
+    c['upper_bound'] = [float(i) for i in upper_bound]
+    c['itr'] = [int(i) for i in itr]
+    c['tolerance'] = [float(i) for i in tolerance]
+
+
+    tnet = db.getNetLayer(netid, c, layer)
+    # a dict { node_id: position (x, y, z) } as { key: value }
+    tlayout = db.getNetLayout(netid, c, layer, layout, dim, tnet)
+    # layers.append( {'network': tnet, 'layout': tlayout} )
+    nodepos = tlayout.tolist()
+    edges = [(i, j) for i, j in tnet.edges]
+    degrees = list(dict(tnet.degree()).values())
+    clust = list(dict(x.clustering(tnet)).values())
+    if layer > 0:
+        children = [list(tnet.nodes[node]['children']) for node in tnet]
+        print('=============> ', type(children[0]))
+    else:
+        children = [[]] * len(clust)
+    layer_ = {
+        'nodes': nodepos, 'edges': edges,
+        'children': children,
+        'degrees': degrees, 'clust': clust
+    }
+    return jsonify(layer_)
+
+
 @app.route("/biML/", methods=['POST'])
 def biML():
     print(request.form)

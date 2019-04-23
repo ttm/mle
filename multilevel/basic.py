@@ -233,6 +233,7 @@ def mkMetaNetwork(network, method):
 
 def mkMatch(network, method):
     g_ = network
+    print(method)
     if 'kclick' in method:  # k-click communities
         # k_ = int(method.replace('kclick', ''))
         svs = [i for i in x.algorithms.community.k_clique_communities(g_, 10)]
