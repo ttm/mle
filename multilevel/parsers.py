@@ -81,5 +81,3 @@ def parseBiNcol(fname):
             g.add_node(v2, ntype=1)
         g.add_edge(v1, v2, weight=w)
     return g
-
-

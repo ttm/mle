@@ -1,7 +1,7 @@
 from pymodm import connect, MongoModel, fields
 import pickle, pymongo
 from bson.objectid import ObjectId
-from .utils import absoluteFilePaths, fpath
+from .utils import absoluteFilePaths, fpath, mkSafeFname
 from .parsers import GMLParser, GMLParserDB, parseNetworkData
 from .basic import mkLayout, mkMetaNetwork
 
@@ -16,6 +16,12 @@ class Connection:
         # any network may have a layout given by the network _id and the layout method
         self.layouts = self.db['layouts']
 
+    def dumpFirstNcol(self, netid):
+        fname = './mlpb/input/%s.ncol' % (mkSafeFname(netid),)
+        query = {'uncoarsened_network': ObjectId(netid), 'layer': 0}
+        network_ = self.networks.find_one(query)
+        with open(fname, 'w') as f:
+            f.write(network_['data'])
     def getNetLayer(self, netid, method, layer):
         if layer > 0:
             query = {'uncoarsened_network': ObjectId(netid), 'layer': layer, 'coarsen_method': method}
@@ -25,8 +31,10 @@ class Connection:
         print(query, 'QUERY')
         if network_:
             network = parseNetworkData(network_)
+            print('parsed <===============')
         else:
-            if layer - 1 > 0:
+            # get previous network
+            if layer > 1:
                 query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1, 'coarsen_method': method}
             else:
                 query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1}

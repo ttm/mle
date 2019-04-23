@@ -8,6 +8,7 @@ for key in keys:
     if ("ml" in key) or ("multilevel" in key):
         del sys.modules[key]
 import multilevel as ml
+mkSafeFname = ml.utils.mkSafeFname
 
 app = Flask(__name__)
 CORS(app)
@@ -43,42 +44,74 @@ def biMLDB():
 
     print(params)
 
-    fname = './mlpb/input/input-moreno.json'
-    with open(fname, 'r') as f:
-        c = json.load(f)
+    dname = './mlpb/' + mkSafeFname(netid)
+    if not os.path.isdir(dname):
+        db.dumpFirstNcol(netid)
+        fname = './mlpb/input/input-moreno.json'
+        with open(fname, 'r') as f:
+            c = json.load(f)
 
-    tdir = './mlpb/apple'
-    c['directory'] = tdir
-    c['input'] = './mlpb/input/moreno.ncol'
+        c['directory'] = dname
+        c['input'] = './mlpb/input/%s.ncol' % (mkSafeFname(netid),)
 
-    c['reduction_factor'] = [float(i) for i in reduction]
-    c['max_levels'] = [int(i) for i in max_levels]
-    c['global_min_vertices'] = [int(i) for i in global_min_vertices]
-    c['matching'] = matching
-    c['similarity'] = similarity
-    c['upper_bound'] = [float(i) for i in upper_bound]
-    c['itr'] = [int(i) for i in itr]
-    c['tolerance'] = [float(i) for i in tolerance]
+        c['reduction_factor'] = [float(i) for i in reduction]
+        c['max_levels'] = [int(i) for i in max_levels]
+        c['global_min_vertices'] = [int(i) for i in global_min_vertices]
+        c['matching'] = matching
+        c['similarity'] = similarity
+        c['upper_bound'] = [float(i) for i in upper_bound]
+        c['itr'] = [int(i) for i in itr]
+        c['tolerance'] = [float(i) for i in tolerance]
+        fname2 = './mlpb/input/input-moreno3.json'
+        with open(fname2, 'w') as f:
+            json.dump(c, f)
 
+        os.system('python3 ./mlpb/coarsening.py -cnf ' + fname2)
 
-    tnet = db.getNetLayer(netid, c, layer)
-    # a dict { node_id: position (x, y, z) } as { key: value }
-    tlayout = db.getNetLayout(netid, c, layer, layout, dim, tnet)
-    # layers.append( {'network': tnet, 'layout': tlayout} )
-    nodepos = tlayout.tolist()
-    edges = [(i, j) for i, j in tnet.edges]
-    degrees = list(dict(tnet.degree()).values())
-    clust = list(dict(x.clustering(tnet)).values())
-    if layer > 0:
-        children = [list(tnet.nodes[node]['children']) for node in tnet]
-        print('=============> ', type(children[0]))
-    else:
-        children = [[]] * len(clust)
-    layer_ = {
-        'nodes': nodepos, 'edges': edges,
-        'children': children,
-        'degrees': degrees, 'clust': clust
-    }
+        fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+        for fname in fnames:
+            tnet = ml.parsers.parseBiNcol(tdir + '/' + fname)
+            l = layouts[layout](tnet, dim=dim)
+            layer = fname[-6]
+            with open(dname+'/'+layout+layer+'.pickle', 'wb') as f:
+                pickle.dump(l, f)
+
+    fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+
+    layers = []
+    for fname in fnames:
+        tnet = ml.parsers.parseBiNcol(tdir + '/' + fname)
+        l = layouts[layout](tnet, dim=dim)
+        tlayout = n.array([l[i] for i in tnet.nodes])
+
+        nodepos = tlayout.tolist()
+        edges = [(i, j) for i, j in tnet.edges]
+        degrees = list(dict(tnet.degree()).values())
+        clust = list(dict(x.clustering(tnet)).values())
+        layer_ = {
+            'nodes': nodepos, 'edges': edges,
+            'children': [[]] * len(clust),
+            'degrees': degrees, 'clust': clust
+        }
+        layers.append(layer_)
+    # tnet = db.getNetLayer(netid, c, layer)
+    # # a dict { node_id: position (x, y, z) } as { key: value }
+    # tlayout = db.getNetLayout(netid, c, layer, layout, dim, tnet)
+    # # layers.append( {'network': tnet, 'layout': tlayout} )
+    # nodepos = tlayout.tolist()
+    # edges = [(i, j) for i, j in tnet.edges]
+    # degrees = list(dict(tnet.degree()).values())
+    # clust = list(dict(x.clustering(tnet)).values())
+    # if layer > 0:
+    #     children = [list(tnet.nodes[node]['children']) for node in tnet]
+    #     print('=============> ', type(children[0]))
+    # else:
+    #     children = [[]] * len(clust)
+    # layer_ = {
+    #     'nodes': nodepos, 'edges': edges,
+    #     'children': children,
+    #     'degrees': degrees, 'clust': clust
+    # }
     return jsonify(layer_)
 
 
