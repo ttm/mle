@@ -18,10 +18,11 @@ class Connection:
 
     def dumpFirstNcol(self, netid):
         fname = './mlpb/input/%s.ncol' % (mkSafeFname(netid),)
-        query = {'uncoarsened_network': ObjectId(netid), 'layer': 0}
+        query = {'_id': ObjectId(netid), 'layer': 0}
         network_ = self.networks.find_one(query)
         with open(fname, 'w') as f:
             f.write(network_['data'])
+
     def getNetLayer(self, netid, method, layer):
         if layer > 0:
             query = {'uncoarsened_network': ObjectId(netid), 'layer': layer, 'coarsen_method': method}

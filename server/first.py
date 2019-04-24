@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
+from bson.objectid import ObjectId
 import numpy as n, networkx as x, percolation as p
-import sys, json, os
+import sys, json, os, pickle
 keys=tuple(sys.modules.keys())
 for key in keys:
     if ("ml" in key) or ("multilevel" in key):
@@ -35,14 +36,14 @@ def biMLDB():
     itr = request.form.getlist('bi[itr][]')
     tolerance = request.form.getlist('bi[tolerance][]')
 
-    params = locals()
+    bi = locals()
 
     netid = request.form['netid']
     layout = request.form['layout']
     dim = int(request.form['dim'])
     layer = int(request.form['layer'])
 
-    print(params)
+    print(bi)
 
     dname = './mlpb/' + mkSafeFname(netid)
     if not os.path.isdir(dname):
@@ -68,32 +69,69 @@ def biMLDB():
 
         os.system('python3 ./mlpb/coarsening.py -cnf ' + fname2)
 
+
         fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+        print('fnames ========>', fnames)
         for fname in fnames:
-            tnet = ml.parsers.parseBiNcol(tdir + '/' + fname)
-            l = layouts[layout](tnet, dim=dim)
-            layer = fname[-6]
-            with open(dname+'/'+layout+layer+'.pickle', 'wb') as f:
-                pickle.dump(l, f)
+            tnet = ml.parsers.parseBiNcol(dname + '/' + fname)
+            layer_ = fname[-6]
+            db.networks.insert_one({
+                'data': pickle.dumps(tnet),
+                'uncoarsened_network': ObjectId(netid),
+                'coarsen_method': bi,
+                'layer': int(layer_),
+                'filename': fname,
+                'urlized': fname
+            })
 
-    fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+    tnet = db.getNetLayer(netid, bi, layer)
+    # a dict { node_id: position (x, y, z) } as { key: value }
+    tlayout = db.getNetLayout(netid, bi, layer, layout, dim, tnet)
+    # layers.append( {'network': tnet, 'layout': tlayout} )
+    nodepos = tlayout.tolist()
+    edges = [(i, j) for i, j in tnet.edges]
+    degrees = list(dict(tnet.degree()).values())
+    clust = list(dict(x.clustering(tnet)).values())
+    # if layer > 0:
+    #     children = [list(tnet.nodes[node]['children']) for node in tnet]
+    #     print('=============> ', type(children[0]))
+    # else:
+    #     children = [[]] * len(clust)
+    layer_ = {
+        'nodes': nodepos, 'edges': edges,
+        'children': [[]] * len(clust),
+        'degrees': degrees, 'clust': clust
+    }
+    return jsonify(layer_)
+    # fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+    # for fname in fnames:
+    #     query2 = {'network': ObjectId(netid), 'layout_name': layout, 'dimensions': dim}
+    #     layout_ = db.layouts.find_one(query2)
+    #     if layout_:
+    #         positions = pickle.loads(layout_['data'])
+    #     else:
+    #     tnet = ml.parsers.parseBiNcol(tdir + '/' + fname)
+    #     l = layouts[layout](tnet, dim=dim)
+    #     layer = fname[-6]
+    #     with open(dname+'/'+layout+layer+'.pickle', 'wb') as f:
+    #         pickle.dump(l, f)
 
-    layers = []
-    for fname in fnames:
-        tnet = ml.parsers.parseBiNcol(tdir + '/' + fname)
-        l = layouts[layout](tnet, dim=dim)
-        tlayout = n.array([l[i] for i in tnet.nodes])
+    # layers = []
+    # for fname in fnames:
+    #     tnet = ml.parsers.parseBiNcol(tdir + '/' + fname)
+    #     l = layouts[layout](tnet, dim=dim)
+    #     tlayout = n.array([l[i] for i in tnet.nodes])
 
-        nodepos = tlayout.tolist()
-        edges = [(i, j) for i, j in tnet.edges]
-        degrees = list(dict(tnet.degree()).values())
-        clust = list(dict(x.clustering(tnet)).values())
-        layer_ = {
-            'nodes': nodepos, 'edges': edges,
-            'children': [[]] * len(clust),
-            'degrees': degrees, 'clust': clust
-        }
-        layers.append(layer_)
+    #     nodepos = tlayout.tolist()
+    #     edges = [(i, j) for i, j in tnet.edges]
+    #     degrees = list(dict(tnet.degree()).values())
+    #     clust = list(dict(x.clustering(tnet)).values())
+    #     layer_ = {
+    #         'nodes': nodepos, 'edges': edges,
+    #         'children': [[]] * len(clust),
+    #         'degrees': degrees, 'clust': clust
+    #     }
+    #     layers.append(layer_)
     # tnet = db.getNetLayer(netid, c, layer)
     # # a dict { node_id: position (x, y, z) } as { key: value }
     # tlayout = db.getNetLayout(netid, c, layer, layout, dim, tnet)
