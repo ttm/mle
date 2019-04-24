@@ -68,28 +68,43 @@ def parseBiNcol(fname):
     if not fname.endswith('.ncol'):
         data = [[int(j) for j in i.split(' ') if i] for i in fname.split('\n')]
         childdata = {}
+        sourcedata = {}
+        print('parsed db stuff')
     else:
         data = n.loadtxt(fname, skiprows=0, dtype=str)
+        print('parsed txt')
         nochild = False
         childdata = parsePredecessor(fname)
+        sourcedata = parsePredecessor(fname, source=True)
     g = x.Graph()
     for row in data:
         if not len(row):
             continue
         v1, v2, w = [int(i) for i in row]
         if v1 not in g.nodes():
-            g.add_node(v1, ntype=0, children=childdata.setdefault(v1, []))
+            g.add_node(v1, ntype=0,
+                children = childdata.setdefault(v1, []),
+                source = sourcedata.setdefault(v1, [])
+            )
         if v2 not in g.nodes():
-            g.add_node(v2, ntype=1, children=childdata.setdefault(v2, []))
+            g.add_node(v2, ntype=1,
+                children = childdata.setdefault(v2, []),
+                source = sourcedata.setdefault(v2, [])
+            )
         g.add_edge(v1, v2, weight=w)
     return g
 
-def parsePredecessor(fname):
-    fname_ = fname.replace('.ncol', '.predecessor')
+def parsePredecessor(fname, source=False):
+    if source:
+        fname_ = fname.replace('.ncol', '.source')
+    else:
+        fname_ = fname.replace('.ncol', '.predecessor')
     with open(fname_, 'r') as f:
         data = f.read()
     d = [[int(i) for i in j.split(' ') if i] for j in data.split('\n')]
+    print('========> predecessor: ', data)
     c = {}
     for cc in range(len(d)):
         c[cc] = d[cc]
+    print('========> predecessor XXXXXXXXx: ', c)
     return c

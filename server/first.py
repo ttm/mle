@@ -42,10 +42,9 @@ def biMLDB():
     layout = request.form['layout']
     dim = int(request.form['dim'])
     layer = int(request.form['layer'])
+    print('str ======>', str(bi))
 
-    print(bi)
-
-    dname = './mlpb/' + mkSafeFname(netid)
+    dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
     if not os.path.isdir(dname):
         db.dumpFirstNcol(netid)
         fname = './mlpb/input/input-moreno.json'
@@ -71,7 +70,6 @@ def biMLDB():
 
 
         fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
-        print('fnames ========>', fnames)
         for fname in fnames:
             tnet = ml.parsers.parseBiNcol(dname + '/' + fname)
             layer_ = fname[-6]
@@ -85,6 +83,8 @@ def biMLDB():
             })
 
     tnet = db.getNetLayer(netid, bi, layer)
+    if tnet == 'coarsening finished':
+        return tnet
     # a dict { node_id: position (x, y, z) } as { key: value }
     tlayout = db.getNetLayout(netid, bi, layer, layout, dim, tnet)
     # layers.append( {'network': tnet, 'layout': tlayout} )
@@ -92,14 +92,11 @@ def biMLDB():
     edges = [(i, j) for i, j in tnet.edges]
     degrees = list(dict(tnet.degree()).values())
     clust = list(dict(x.clustering(tnet)).values())
-    # if layer > 0:
-    #     children = [list(tnet.nodes[node]['children']) for node in tnet]
-    #     print('=============> ', type(children[0]))
-    # else:
-    #     children = [[]] * len(clust)
+    children = [list(tnet.nodes[node]['children']) for node in tnet]
+    source = [list(tnet.nodes[node]['source']) for node in tnet]
     layer_ = {
         'nodes': nodepos, 'edges': edges,
-        'children': [[]] * len(clust),
+        'children': children, 'source': source,
         'degrees': degrees, 'clust': clust
     }
     return jsonify(layer_)

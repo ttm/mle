@@ -209,7 +209,6 @@ def mkLayout(netid, method, layout, dimensions, layer, network):
             query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1}
         network_id = db.networks.find_one(query, {'_id': 1})
         query2 = {'network': network_id['_id'], 'layout_name': layout, 'dimensions': dimensions}
-        print(query2, layer, 'QUERY2')
         layout_ = db.layouts.find_one(query2)
         if not layout_:
             raise LookupError('layout of previous level should have been created beforehand')
@@ -233,7 +232,6 @@ def mkMetaNetwork(network, method):
 
 def mkMatch(network, method):
     g_ = network
-    print(method)
     if 'kclick' in method:  # k-click communities
         # k_ = int(method.replace('kclick', ''))
         svs = [i for i in x.algorithms.community.k_clique_communities(g_, 10)]
@@ -268,7 +266,6 @@ def mkCollapse(network, meta_network):
         ch = meta_network.nodes[node_]['children']
         ad = dict.fromkeys(ch, node_)
         nmn.update(ad)
-    print('nmn', nmn, network.number_of_nodes(), meta_network.number_of_nodes())
     for e in network.edges():
         mv1 = nmn[e[0]]
         mv2 = nmn[e[1]]

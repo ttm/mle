@@ -42,7 +42,7 @@ def mkDiNetFromEdges(edges):
     return g
 
 def mkSafeFname(filename):
-    keepcharacters = (' ','.','_')
+    keepcharacters = ('.','_')
     fname = "".join(c for c in filename if c.isalnum() or c in keepcharacters).rstrip()
     return fname
 

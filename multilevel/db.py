@@ -29,12 +29,12 @@ class Connection:
         else:
             query = {'uncoarsened_network': ObjectId(netid), 'layer': layer}
         network_ = self.networks.find_one(query)
-        print(query, 'QUERY')
         if network_:
             network = parseNetworkData(network_)
-            print('parsed <===============')
         else:
             # get previous network
+            if type(method) == dict:
+                return 'coarsening finished'
             if layer > 1:
                 query = {'uncoarsened_network': ObjectId(netid), 'layer': layer - 1, 'coarsen_method': method}
             else:
@@ -77,9 +77,7 @@ class Connection:
 
     def getNet(self, netid):
         query = {'_id': ObjectId(netid)}
-        print(query)
         network_ = self.networks.find_one(query)
-        print(network_)
         network = GMLParserDB(network_['data']).g
         return network
 
