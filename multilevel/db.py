@@ -1,5 +1,6 @@
 from pymodm import connect, MongoModel, fields
 import pickle, pymongo
+import numpy as n
 from bson.objectid import ObjectId
 from .utils import absoluteFilePaths, fpath, mkSafeFname
 from .parsers import GMLParser, GMLParserDB, parseNetworkData
@@ -22,6 +23,16 @@ class Connection:
         network_ = self.networks.find_one(query)
         with open(fname, 'w') as f:
             f.write(network_['data'])
+
+    def getBiNvertices(self, netid):
+        query = {'_id': ObjectId(netid), 'layer': 0}
+        network_ = self.networks.find_one(query)
+        data = network_['data']
+        data_ = [[int(j) for j in i.split(' ') if i.strip()] for i in data.split('\n')]
+        d = n.vstack(data_[:-1])
+        nv1 = len(set(d[:, 0]))
+        nv2 = len(set(d[:, 1]))
+        return nv1, nv2
 
     def getNetLayer(self, netid, method, layer):
         if layer > 0:

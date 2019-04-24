@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#rjj!/usr/bin/python3
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from bson.objectid import ObjectId
@@ -42,7 +42,6 @@ def biMLDB():
     layout = request.form['layout']
     dim = int(request.form['dim'])
     layer = int(request.form['layer'])
-    print('str ======>', str(bi))
 
     dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
     if not os.path.isdir(dname):
@@ -53,6 +52,9 @@ def biMLDB():
 
         c['directory'] = dname
         c['input'] = './mlpb/input/%s.ncol' % (mkSafeFname(netid),)
+        nvertices = db.getBiNvertices(netid)
+        c['vertices'] = nvertices
+
 
         c['reduction_factor'] = [float(i) for i in reduction]
         c['max_levels'] = [int(i) for i in max_levels]
@@ -91,7 +93,7 @@ def biMLDB():
     nodepos = tlayout.tolist()
     edges = [(i, j) for i, j in tnet.edges]
     degrees = list(dict(tnet.degree()).values())
-    clust = list(dict(x.clustering(tnet)).values())
+    clust = list(dict(x.algorithms.bipartite.clustering(tnet)).values())
     children = [list(tnet.nodes[node]['children']) for node in tnet]
     source = [list(tnet.nodes[node]['source']) for node in tnet]
     layer_ = {
