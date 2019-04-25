@@ -14,6 +14,8 @@ mkSafeFname = ml.utils.mkSafeFname
 app = Flask(__name__)
 CORS(app)
 
+db = ml.db.Connection()
+
 layouts = {
         'circular' : x.layout.circular_layout,
         'fruch' : x.layout.fruchterman_reingold_layout, # same as spring?
@@ -24,9 +26,7 @@ layouts = {
         'spring' : x.layout.spring_layout,
         }
 
-@app.route("/biMLDB/", methods=['POST'])
-def biMLDB():
-
+def parseBi(request):
     reduction = request.form.getlist('bi[reduction][]')
     max_levels = request.form.getlist('bi[max_levels][]')
     global_min_vertices = request.form.getlist('bi[global_min_vertices][]')
@@ -37,12 +37,15 @@ def biMLDB():
     tolerance = request.form.getlist('bi[tolerance][]')
 
     bi = locals()
+    del bi['request']
+    return bi
 
-    netid = request.form['netid']
+def biEnsureRendered(bi, netid):
+    print('========> ha ', bi, netid)
+    globals().update(bi)
     layout = request.form['layout']
     dim = int(request.form['dim'])
-    layer = int(request.form['layer'])
-
+    level = int(request.form['layer'])
     dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
     if not os.path.isdir(dname):
         db.dumpFirstNcol(netid)
@@ -70,19 +73,54 @@ def biMLDB():
 
         os.system('python3 ./mlpb/coarsening.py -cnf ' + fname2)
 
-
         fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+        fnames.sort()
+        print('fnames =======>', fnames)
+        tnet = db.getNetLayer(netid, bi, 0)
+        db.getNetLayout(netid, bi, 0, layout, dim, tnet)
         for fname in fnames:
             tnet = ml.parsers.parseBiNcol(dname + '/' + fname)
-            layer_ = fname[-6]
-            db.networks.insert_one({
-                'data': pickle.dumps(tnet),
-                'uncoarsened_network': ObjectId(netid),
-                'coarsen_method': bi,
-                'layer': int(layer_),
-                'filename': fname,
-                'urlized': fname
-            })
+            layer_ = int(fname[-6])
+            tinsert = {
+                    'data': pickle.dumps(tnet),
+                    'uncoarsened_network': ObjectId(netid),
+                    'coarsen_method': bi,
+                    'layer': layer_,
+                    'filename': fname,
+                    'urlized': fname
+            }
+            db.networks.insert_one(tinsert)
+            # if layer_ > 1:
+            #     query = {'uncoarsened_network': ObjectId(netid), 'layer': layer_ - 1, 'coarsen_method': bi}
+            # else:
+            #     query = {'uncoarsened_network': ObjectId(netid), 'layer': layer_ - 1}
+            # print(query, '----------------<<<<<<<<<< tquery')
+            # network_id = db.networks.find_one(query, {'_id': 1})
+            # db.getNetLayout(network_id['_id'], bi, int(layer_), layout, dim, tnet)
+            db.getNetLayout(netid, bi, int(layer_), layout, dim, tnet)
+
+
+@app.route("/biGetLastLevel/", methods=['POST'])
+def biGetLastLevel():
+    bi = parseBi(request)
+    netid = request.form['netid']
+    biEnsureRendered(bi, netid)
+    dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
+    fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+    levels = [int(i[-6]) for i in fnames]
+    print('levels::::::::: ', levels)
+    return str(max(levels))
+            
+@app.route("/biMLDB/", methods=['POST'])
+def biMLDB():
+    bi = parseBi(request)
+
+    netid = request.form['netid']
+    layout = request.form['layout']
+    dim = int(request.form['dim'])
+    layer = int(request.form['layer'])
+
+    biEnsureRendered(bi, netid)
 
     tnet = db.getNetLayer(netid, bi, layer)
     if tnet == 'coarsening finished':
@@ -654,8 +692,6 @@ def netlevels(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3)
     nodepos = [i.tolist() for i in mls.npos_]
     edges = mls.edges_
     return jsonify({'nodes': nodepos, 'edges': edges})
-
-db = ml.db.Connection()
 
 @app.route("/netlevelsFoo/<net>/<layout>/<int:dim>/<int:level>/<method>/<sep>/<int:axis>/")
 def netlevelsFoo(net, layout, dim=3, links=1, level=1, method='mod', sep=1, axis=3):
