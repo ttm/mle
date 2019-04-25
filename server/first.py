@@ -45,7 +45,6 @@ def biEnsureRendered(bi, netid):
     globals().update(bi)
     layout = request.form['layout']
     dim = int(request.form['dim'])
-    level = int(request.form['layer'])
     dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
     if not os.path.isdir(dname):
         db.dumpFirstNcol(netid)
@@ -137,9 +136,47 @@ def biMLDB():
     layer_ = {
         'nodes': nodepos, 'edges': edges,
         'children': children, 'source': source,
-        'degrees': degrees, 'clust': clust
+        'degrees': degrees, 'clust': clust,
+        'layer': layer
     }
     return jsonify(layer_)
+
+@app.route("/biMLDBAll/", methods=['POST'])
+def biMLDBAll():
+    bi = parseBi(request)
+
+    netid = request.form['netid']
+    layout = request.form['layout']
+    dim = int(request.form['dim'])
+
+    biEnsureRendered(bi, netid)
+    layer = 0
+    layers = []
+    while 1:
+        print('lstart')
+        tnet = db.getNetLayer(netid, bi, layer)
+        if tnet == 'coarsening finished':
+            break
+        # a dict { node_id: position (x, y, z) } as { key: value }
+        tlayout = db.getNetLayout(netid, bi, layer, layout, dim, tnet)
+        # layers.append( {'network': tnet, 'layout': tlayout} )
+        nodepos = tlayout.tolist()
+        edges = [(i, j) for i, j in tnet.edges]
+        degrees = list(dict(tnet.degree()).values())
+        clust = list(dict(x.algorithms.bipartite.clustering(tnet)).values())
+        children = [list(tnet.nodes[node]['children']) for node in tnet]
+        source = [list(tnet.nodes[node]['source']) for node in tnet]
+        layer_ = {
+            'nodes': nodepos, 'edges': edges,
+            'children': children, 'source': source,
+            'degrees': degrees, 'clust': clust,
+            'layer': layer
+        }
+        layers.append(layer_)
+        layer += 1
+        print('lfinish', layer)
+    print('returning response', layers)
+    return jsonify(layers)
     # fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
     # for fname in fnames:
     #     query2 = {'network': ObjectId(netid), 'layout_name': layout, 'dimensions': dim}
