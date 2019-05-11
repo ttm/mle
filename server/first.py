@@ -4,6 +4,8 @@ from flask_cors import CORS
 from bson.objectid import ObjectId
 import numpy as n, networkx as x, percolation as p
 import sys, json, os, pickle
+from scipy.linalg import expm
+from sklearn.manifold import MDS
 keys=tuple(sys.modules.keys())
 for key in keys:
     if ("ml" in key) or ("multilevel" in key):
@@ -297,7 +299,8 @@ def postTest3():
     sec_method = request.form['sec_method']
     hip_perc = [int(i)/100 for i in request.form.getlist('hip_perc[]')]
     # with open('../utils/here.enet', 'r') as f:
-    with open('../utils/scalefree.enet', 'r') as f:
+    # with open('../utils/scalefree.enet', 'r') as f:
+    with open('../utils/here.enet', 'r') as f:
         edges_ = json.load(f)
 
     e = edges_[mrange[0]:mrange[1]+1]
@@ -764,7 +767,8 @@ def netlevelDB(netid, layout, dim=3, layer=0, method='mod'):
     layer_ = {
         'nodes': nodepos, 'edges': edges,
         'children': children,
-        'degrees': degrees, 'clust': clust
+        'degrees': degrees, 'clust': clust,
+        'source': [[]]*len(degrees)
     }
     return jsonify(layer_)
 
@@ -821,3 +825,38 @@ def part(slug):
     # and how to engage in it to alter its structures, for collection and diffusion of information, and for linking their social networks
     # (virtual or in-person) to them.
     pass
+
+mfnames = {'dolphins': 'dolphinsA.txt', 'zackar': 'ZackarA.txt'}
+@app.route("/communicability/", methods=['POST'])
+def communicability():
+    print(request.form)
+    f = request.form
+
+    A = n.loadtxt('../data/matrix/' + mfnames[f['net']])
+    As = n.maximum(A, A.T) - n.diag(A)
+    N = As.shape[0]
+
+    G = expm(float(f['temp'])*As)  # communicability matrix using Pade approximation
+    sc = n.matrix(n.diag(G)).T  # vector of self-communicabilities
+
+    u = n.matrix(n.ones(N)).T
+
+    CD = n.dot(sc, u.T) + n.dot(u, sc.T) -2 * G  # squared communicability distance matrix
+    X = n.array(CD) ** .5  # communicability distance matrix
+
+    An___ = n.arccos(G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T))) ** .5)
+    An__ = n.degrees(An___)
+    min_angle = float(f['mangle'])
+    An_ = An__ + min_angle - n.identity(N) * min_angle
+    An = n.real( n.maximum(An_, An_.T) ) # communicability angles matrix
+
+    E_original = n.linalg.eigvals(An)
+
+    embedding = MDS(n_components=int(f['dim']), n_init=int(f['inits']), max_iter=int(f['iters']), n_jobs=-1, dissimilarity='precomputed')
+
+    p = positions = embedding.fit_transform(An)
+    p_ = .8 * p / n.abs(p).max()
+    ll = n.vstack( A.nonzero() ).T.tolist()  # links
+
+    return jsonify({'nodes': p_.tolist(), 'links': ll})
+            
