@@ -5,7 +5,7 @@ from bson.objectid import ObjectId
 import numpy as n, networkx as x, percolation as p
 import sys, json, os, pickle
 from scipy.linalg import expm
-from sklearn.manifold import MDS
+from sklearn.manifold import MDS, TSNE
 keys=tuple(sys.modules.keys())
 for key in keys:
     if ("ml" in key) or ("multilevel" in key):
@@ -852,9 +852,12 @@ def communicability():
 
     E_original = n.linalg.eigvals(An)
 
-    embedding = MDS(n_components=int(f['dim']), n_init=int(f['inits']), max_iter=int(f['iters']), n_jobs=-1, dissimilarity='precomputed')
-
+    if f['dimredtype'] == 'MDS':
+        embedding = MDS(n_components=int(f['dim']), n_init=int(f['inits']), max_iter=int(f['iters']), n_jobs=-1, dissimilarity='precomputed')
+    else:
+        embedding = TSNE(n_components=int(f['dim']), n_iter=int(f['iters']), metric='precomputed', learning_rate=int(f['lrate']), perplexity=int(f['perplexity']))
     p = positions = embedding.fit_transform(An)
+
     p_ = .8 * p / n.abs(p).max()
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
 
