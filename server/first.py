@@ -167,10 +167,11 @@ def biMLDBAll():
         degrees = list(dict(tnet.degree()).values())
         clust = list(dict(x.algorithms.bipartite.clustering(tnet)).values())
         children = [list(tnet.nodes[node]['children']) for node in tnet]
-        source = [list(tnet.nodes[node]['source']) for node in tnet]
+        parents = [list(tnet.nodes[node]['parent']) for node in tnet]
+        sources = [list(tnet.nodes[node]['source']) for node in tnet]
         layer_ = {
-            'nodes': nodepos, 'edges': edges,
-            'children': children, 'source': source,
+            'nodes': nodepos, 'edges': edges, 'sources': sources,
+            'children': children, 'parents': parents,
             'degrees': degrees, 'clust': clust,
             'layer': layer
         }

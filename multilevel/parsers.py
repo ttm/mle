@@ -69,11 +69,13 @@ def parseBiNcol(fname):
         data = [[int(j) for j in i.split(' ') if i] for i in fname.split('\n')]
         childdata = {}
         sourcedata = {}
+        successordata = {}
     else:
         data = n.loadtxt(fname, skiprows=0, dtype=str)
         nochild = False
         childdata = parsePredecessor(fname)
         sourcedata = parsePredecessor(fname, source=True)
+        successordata = parseSuccessor(fname)
     g = x.Graph()
     for row in data:
         if not len(row):
@@ -82,12 +84,14 @@ def parseBiNcol(fname):
         if v1 not in g.nodes():
             g.add_node(v1, ntype=0,
                 children = childdata.setdefault(v1, []),
-                source = sourcedata.setdefault(v1, [])
+                source = sourcedata.setdefault(v1, []),
+                parent = successordata.setdefault(v1, [])
             )
         if v2 not in g.nodes():
             g.add_node(v2, ntype=1,
                 children = childdata.setdefault(v2, []),
-                source = sourcedata.setdefault(v2, [])
+                source = sourcedata.setdefault(v2, []),
+                parent = successordata.setdefault(v2, [])
             )
         g.add_edge(v1, v2, weight=w)
     return g
@@ -97,6 +101,15 @@ def parsePredecessor(fname, source=False):
         fname_ = fname.replace('.ncol', '.source')
     else:
         fname_ = fname.replace('.ncol', '.predecessor')
+    with open(fname_, 'r') as f:
+        data = f.read()
+    d = [[int(i) for i in j.split(' ') if i] for j in data.split('\n')]
+    c = {}
+    for cc in range(len(d)):
+        c[cc] = d[cc]
+    return c
+def parseSuccessor(fname):
+    fname_ = fname.replace('.ncol', '.successor')
     with open(fname_, 'r') as f:
         data = f.read()
     d = [[int(i) for i in j.split(' ') if i] for j in data.split('\n')]
