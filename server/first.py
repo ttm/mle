@@ -1,4 +1,4 @@
-#rjj!/usr/bin/python3
+#!/usr/bin/python3
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from bson.objectid import ObjectId
@@ -28,6 +28,14 @@ layouts = {
         'spring' : x.layout.spring_layout,
         }
 
+def parseMlTxt(fname, split=True):
+    with open(fname, 'r') as f:
+        data = f.read()
+    if split:
+        return [[int(i) for i in j.split(' ') if i] for j in data.split('\n') if j]
+    else:
+        return [int(i) for i in data.split('\n') if i]
+
 def parseBi(request):
     reduction = request.form.getlist('bi[reduction][]')
     max_levels = request.form.getlist('bi[max_levels][]')
@@ -43,7 +51,6 @@ def parseBi(request):
     return bi
 
 def biEnsureRendered(bi, netid):
-    print('========> ha ', bi, netid)
     globals().update(bi)
     layout = request.form['layout']
     dim = int(request.form['dim'])
@@ -100,6 +107,70 @@ def biEnsureRendered(bi, netid):
             # db.getNetLayout(network_id['_id'], bi, int(layer_), layout, dim, tnet)
             db.getNetLayout(netid, bi, int(layer_), layout, dim, tnet)
 
+@app.route("/layoutOnDemand/", methods=['POST'])
+def layoutOnDemand():
+    print(request.form)
+    return 'doing ok'
+
+@app.route("/biMLDBtopdown/", methods=['POST'])
+def biMLDBtopdown():
+    bi = parseBi(request)
+    globals().update(bi)
+    netid = request.form['netid']
+    layout = request.form['layout']
+    dim = int(request.form['dim'])
+
+    dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
+    if not os.path.isdir(dname):
+        db.dumpFirstNcol(netid)
+        fname = './mlpb/input/input-moreno.json'
+        with open(fname, 'r') as f:
+            c = json.load(f)
+
+        c['directory'] = dname
+        c['input'] = './mlpb/input/%s.ncol' % (mkSafeFname(netid),)
+        nvertices = db.getBiNvertices(netid)
+        c['vertices'] = nvertices
+
+        c['reduction_factor'] = [float(i) for i in reduction]
+        c['max_levels'] = [int(i) for i in max_levels]
+        c['global_min_vertices'] = [int(i) for i in global_min_vertices]
+        c['matching'] = matching
+        c['similarity'] = similarity
+        c['upper_bound'] = [float(i) for i in upper_bound]
+        c['itr'] = [int(i) for i in itr]
+        c['tolerance'] = [float(i) for i in tolerance]
+        fname2 = './mlpb/input/input-moreno3.json'
+        with open(fname2, 'w') as f:
+            json.dump(c, f)
+
+        os.system('python3 ./mlpb/coarsening.py -cnf ' + fname2)
+        os.system('cp ./mlpb/input/'+mkSafeFname(netid)+'.ncol '+dname+'/moreno-0.ncol')
+
+    fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
+    fnames.sort()
+    count = 0
+    layers = []
+    for fname in fnames:
+        print('here => ', fname)
+        fname = dname+'/'+fname
+        links = n.loadtxt(fname, skiprows=0, dtype=int).tolist()
+        print(links)
+        if count != 0: # level 0 has no such files:
+            sou = parseMlTxt(fname.replace('.ncol', '.source'))
+            pred = parseMlTxt(fname.replace('.ncol', '.predecessor'))
+            suc = parseMlTxt(fname.replace('.ncol', '.successor'), False)
+        else:
+            sou = pred = suc = [[]] * len(links)
+        layer_ = {
+            'links': links, 'sources': sou,
+            'children': pred, 'parents': suc,
+            'layer': count
+        }
+        layers.append(layer_)
+        count += 1
+
+    return jsonify(layers)
 
 @app.route("/biGetLastLevel/", methods=['POST'])
 def biGetLastLevel():
@@ -159,6 +230,7 @@ def biMLDBAll():
         tnet = db.getNetLayer(netid, bi, layer)
         if tnet == 'coarsening finished':
             break
+        nodes = tnet.nodes()
         # a dict { node_id: position (x, y, z) } as { key: value }
         tlayout = db.getNetLayout(netid, bi, layer, layout, dim, tnet)
         # layers.append( {'network': tnet, 'layout': tlayout} )
@@ -166,9 +238,9 @@ def biMLDBAll():
         edges = [(i, j) for i, j in tnet.edges]
         degrees = list(dict(tnet.degree()).values())
         clust = list(dict(x.algorithms.bipartite.clustering(tnet)).values())
-        children = [list(tnet.nodes[node]['children']) for node in tnet]
-        parents = [list(tnet.nodes[node]['parent']) for node in tnet]
-        sources = [list(tnet.nodes[node]['source']) for node in tnet]
+        children = [list(tnet.nodes[node]['children']) for node in nodes]
+        parents = [list(tnet.nodes[node]['parent']) for node in nodes]
+        sources = [list(tnet.nodes[node]['source']) for node in nodes]
         layer_ = {
             'nodes': nodepos, 'edges': edges, 'sources': sources,
             'children': children, 'parents': parents,
