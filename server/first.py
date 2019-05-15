@@ -109,8 +109,19 @@ def biEnsureRendered(bi, netid):
 
 @app.route("/layoutOnDemand/", methods=['POST'])
 def layoutOnDemand():
-    print(request.form)
-    return 'doing ok'
+    # print(request.form)
+    print(request.get_json(), 'baby')
+    r = request.get_json()
+    l = r['layout']
+    d = r['dim']
+    nodes = r['nodes']
+    links = r['links']
+    g = x.Graph()
+    for n in nodes: g.add_node(n)
+    for ll in links: g.add_edge(ll[0], ll[1])
+    l_ = layouts[l](g, dim=d)
+    pos = [l_[n].tolist() for n in nodes]
+    return jsonify(pos)
 
 @app.route("/biMLDBtopdown/", methods=['POST'])
 def biMLDBtopdown():
