@@ -120,7 +120,7 @@ def layoutOnDemand():
     for n in nodes: g.add_node(n)
     for ll in links: g.add_edge(ll[0], ll[1])
     l_ = layouts[l](g, dim=d)
-    pos = [l_[n].tolist() for n in nodes]
+    pos = {n: l_[n].tolist() for n in nodes}
     return jsonify(pos)
 
 @app.route("/biMLDBtopdown/", methods=['POST'])
@@ -163,16 +163,16 @@ def biMLDBtopdown():
     count = 0
     layers = []
     for fname in fnames:
-        print('here => ', fname)
         fname = dname+'/'+fname
-        links = n.loadtxt(fname, skiprows=0, dtype=int).tolist()
-        print(links)
+        links = n.loadtxt(fname, skiprows=0, dtype=int)
+        nnodes = len(set(links[:, 0]).union(links[:, 1]))
+        links = links.tolist()
         if count != 0: # level 0 has no such files:
             sou = parseMlTxt(fname.replace('.ncol', '.source'))
             pred = parseMlTxt(fname.replace('.ncol', '.predecessor'))
             suc = parseMlTxt(fname.replace('.ncol', '.successor'), False)
         else:
-            sou = pred = suc = [[]] * len(links)
+            sou = pred = suc = [[]] * nnodes
         layer_ = {
             'links': links, 'sources': sou,
             'children': pred, 'parents': suc,
