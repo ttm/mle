@@ -28,7 +28,7 @@ class Connection:
         query = {'_id': ObjectId(netid), 'layer': 0}
         network_ = self.networks.find_one(query)
         data = network_['data']
-        data_ = [[int(j) for j in i.split(' ') if i.strip()] for i in data.split('\n')]
+        data_ = [[int(float(j)) for j in i.split(' ') if i.strip()] for i in data.split('\n')]
         d = n.vstack(data_[:-1])
         nv1 = len(set(d[:, 0]))
         nv2 = len(set(d[:, 1]))

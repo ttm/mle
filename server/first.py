@@ -117,10 +117,16 @@ def layoutOnDemand():
     nodes = r['nodes']
     links = r['links']
     g = x.Graph()
-    for n in nodes: g.add_node(n)
+    for n_ in nodes: g.add_node(n_)
     for ll in links: g.add_edge(ll[0], ll[1])
     l_ = layouts[l](g, dim=d)
-    pos = {n: l_[n].tolist() for n in nodes}
+    l__ = n.array([l_[i] for i in nodes])
+    print(l__, l__.shape, '<========== tshape')
+    l__[:, 0] /= n.max(n.abs(l__[:, 0]))
+    l__[:, 1] /= n.max(n.abs(l__[:, 1]))
+    # pos = {n: l_[n].tolist() for n in nodes}
+    # pos = l__.tolist()
+    pos = {n: l__[i].tolist() for i, n in enumerate(nodes)}
     return jsonify(pos)
 
 @app.route("/biMLDBtopdown/", methods=['POST'])
@@ -164,7 +170,7 @@ def biMLDBtopdown():
     layers = []
     for fname in fnames:
         fname = dname+'/'+fname
-        links = n.loadtxt(fname, skiprows=0, dtype=int)
+        links = n.loadtxt(fname, skiprows=0, dtype=float).astype(int)
         nnodes = len(set(links[:, 0]).union(links[:, 1]))
         links = links.tolist()
         if count != 0: # level 0 has no such files:
