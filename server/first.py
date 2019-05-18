@@ -134,7 +134,6 @@ def biMLDBtopdown():
     bi = parseBi(request)
     globals().update(bi)
     netid = request.form['netid']
-    layout = request.form['layout']
     dim = int(request.form['dim'])
 
     dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
