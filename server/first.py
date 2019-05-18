@@ -122,8 +122,9 @@ def layoutOnDemand():
     l_ = layouts[l](g, dim=d)
     l__ = n.array([l_[i] for i in nodes])
     print(l__, l__.shape, '<========== tshape')
-    l__[:, 0] /= n.max(n.abs(l__[:, 0]))
-    l__[:, 1] /= n.max(n.abs(l__[:, 1]))
+    if l__.shape[0] != 1:
+        l__[:, 0] /= n.max(n.abs(l__[:, 0]))
+        l__[:, 1] /= n.max(n.abs(l__[:, 1]))
     # pos = {n: l_[n].tolist() for n in nodes}
     # pos = l__.tolist()
     pos = {n: l__[i].tolist() for i, n in enumerate(nodes)}
