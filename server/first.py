@@ -925,6 +925,40 @@ def part(slug):
     # (virtual or in-person) to them.
     pass
 
+def sphereFit(spX,spY,spZ):
+    #   Assemble the A matrix
+    spX = n.array(spX)
+    spY = n.array(spY)
+    spZ = n.array(spZ)
+    A = n.zeros((len(spX),4))
+    A[:,0] = spX*2
+    A[:,1] = spY*2
+    A[:,2] = spZ*2
+    A[:,3] = 1
+
+    #   Assemble the f matrix
+    f = n.zeros((len(spX),1))
+    f[:,0] = (spX*spX) + (spY*spY) + (spZ*spZ)
+    C, residules, rank, singval = n.linalg.lstsq(A,f)
+
+    #   solve for the radius
+    t = (C[0]*C[0])+(C[1]*C[1])+(C[2]*C[2])+C[3]
+    radius = t**0.5
+
+    return {'r': radius[0], 'c': [C[0][0], C[1][0], C[2][0]]}
+
+def getSphere(points):
+    data = sphereFit(points[:,0], points[:,1], points[:,2])
+    dists = (
+                  (points[:,0] - data['c'][0])**2 
+                + (points[:,1] - data['c'][1])**2 
+                + (points[:,2] - data['c'][2])**2 
+            ) ** 0.5
+    mean = dists.mean()
+    std = dists.std()
+    return {**data, **{'mean': mean, 'std': std}}
+
+
 mfnames = {'dolphins': 'dolphinsA.txt', 'zackar': 'ZackarA.txt'}
 @app.route("/communicability/", methods=['POST'])
 def communicability():
@@ -958,7 +992,9 @@ def communicability():
     p = positions = embedding.fit_transform(An)
 
     p_ = .8 * p / n.abs(p).max()
+    sphere_data = getSphere(p_)
+    print('sdata', sphere_data, '<<<< ==== sdata')
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
 
-    return jsonify({'nodes': p_.tolist(), 'links': ll})
+    return jsonify({'nodes': p_.tolist(), 'links': ll, 'sdata': sphere_data})
             
