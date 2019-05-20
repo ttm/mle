@@ -965,7 +965,14 @@ def communicability():
     print(request.form)
     f = request.form
 
-    A = n.loadtxt('../data/matrix/' + mfnames[f['net']])
+    netid = request.form['netid']
+    query = {'_id': ObjectId(netid), 'layer': 0}
+    network_ = db.networks.find_one(query)
+    # A = n.loadtxt('../data/matrix/' + mfnames[f['net']])
+    fname = '../data/matrix/' + network_['filename']
+    with open(fname, 'w') as f_:
+        f_.write(network_['data'])
+    A = n.loadtxt(fname)
     As = n.maximum(A, A.T) - n.diag(A)
     N = As.shape[0]
 
