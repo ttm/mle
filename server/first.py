@@ -2,6 +2,7 @@
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from bson.objectid import ObjectId
+from io import StringIO
 import numpy as n, networkx as x, percolation as p
 import sys, json, os, pickle
 from scipy.linalg import expm
@@ -138,6 +139,26 @@ def layoutOnDemand():
     print(l__, l__.shape, '<========== tshape')
     pos = {n: l__[i].tolist() for i, n in enumerate(nodes)}
     return jsonify(pos)
+
+@app.route("/biMLDBgetinfo/", methods=['POST'])
+def biMLDBgetinfo():
+    print('ok 1')
+    netid = request.form['netid']
+    query = {'_id': ObjectId(netid), 'layer': 0}
+    network_ = db.networks.find_one(query)
+    data = network_['data']
+    print('ok 2')
+    links = n.loadtxt(StringIO(data), skiprows=0, dtype=float).astype(int)
+    nnodes = len(set(links[:, 0]).union(links[:, 1]))
+    fltwo = len(set(links[:,0]))
+    print('ok 3')
+    info = {
+        'n2': nnodes - fltwo,
+        'n1': fltwo,
+        'l': len(links)
+    }
+    print('ok 4')
+    return jsonify(info)
 
 @app.route("/biMLDBtopdown/", methods=['POST'])
 def biMLDBtopdown():
