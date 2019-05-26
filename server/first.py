@@ -118,7 +118,7 @@ def layoutOnDemand():
     links = r['links']
     g = x.Graph()
     for n_ in nodes: g.add_node(n_)
-    for ll in links: g.add_edge(ll[0], ll[1])
+    for ll in links: g.add_edge(ll[0], ll[1], weight=ll[2])
     l_ = layouts[l](g, dim=d)
     l__ = n.array([l_[i] for i in nodes])
     if l__.shape[0] != 1:
@@ -181,6 +181,7 @@ def biMLDBtopdown():
         fname = dname+'/'+fname
         links = n.loadtxt(fname, skiprows=0, dtype=float).astype(int)
         nnodes = len(set(links[:, 0]).union(links[:, 1]))
+        fltwo = len(set(links[:,0]))
         links = links.tolist()
         if count != 0: # level 0 has no such files:
             sou = parseMlTxt(fname.replace('.ncol', '.source'))
@@ -191,7 +192,7 @@ def biMLDBtopdown():
         layer_ = {
             'links': links, 'sources': sou,
             'children': pred, 'parents': suc,
-            'layer': count
+            'layer': count, 'fltwo': fltwo
         }
         layers.append(layer_)
         count += 1
@@ -974,6 +975,7 @@ def communicability():
         f_.write(network_['data'])
     A = n.loadtxt(fname)
     As = n.maximum(A, A.T) - n.diag(A)
+    print(A, As, "<<<<<<<<<< A As")
     N = As.shape[0]
 
     G = expm(float(f['temp'])*As)  # communicability matrix using Pade approximation
