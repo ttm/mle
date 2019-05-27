@@ -27,6 +27,8 @@ layouts = {
         'shell' : x.layout.shell_layout, # arrumar 3d
         'spectral' : x.layout.spectral_layout,
         'spring' : x.layout.spring_layout,
+        'h-bipartite': lambda g, l0 : x.layout.bipartite_layout(g, l0, 'horizontal'),
+        'v-bipartite': lambda g, l0 : x.layout.bipartite_layout(g, l0),
         }
 
 def parseMlTxt(fname, split=True):
@@ -120,7 +122,11 @@ def layoutOnDemand():
     g = x.Graph()
     for n_ in nodes: g.add_node(n_)
     for ll in links: g.add_edge(ll[0], ll[1], weight=ll[2])
-    l_ = layouts[l](g, dim=d)
+    if 'bipartite' in l:
+        print(r['l0'], '<<<<========= HERE')
+        l_ = layouts[l](g, r['l0'])
+    else:
+        l_ = layouts[l](g, dim=d)
     l__ = n.array([l_[i] for i in nodes])
     if l__.shape[0] != 1:
         l__[:, 0] -= n.min(l__[:, 0])
