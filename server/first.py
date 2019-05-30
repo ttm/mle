@@ -986,7 +986,6 @@ def getSphere(points):
 mfnames = {'dolphins': 'dolphinsA.txt', 'zackar': 'ZackarA.txt'}
 @app.route("/communicability/", methods=['POST'])
 def communicability():
-    print(request.form)
     f = request.form
 
     netid = request.form['netid']
@@ -998,7 +997,6 @@ def communicability():
         f_.write(network_['data'])
     A = n.loadtxt(fname)
     As = n.maximum(A, A.T) - n.diag(n.diag(A))
-    print(A, As, "<<<<<<<<<< A As")
     N = As.shape[0]
 
     G = expm(float(f['temp'])*As)  # communicability matrix using Pade approximation
@@ -1025,7 +1023,6 @@ def communicability():
 
     p_ = .8 * p / n.abs(p).max()
     sphere_data = getSphere(p_)
-    print('sdata', sphere_data, '<<<< ==== sdata')
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
 
     # detecting communities
@@ -1039,7 +1036,6 @@ def communicability():
         score = silhouette_score(An, kmeans.labels_)
         ev.append(score)
     km_ = [[int(j) for j in i.labels_] for i in km]
-    print(ev, km_, '<<<<<<<<<= HEREEEE')
 
     return jsonify({
         'nodes': p_.tolist(), 'links': ll, 'sdata': sphere_data,
