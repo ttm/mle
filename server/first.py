@@ -1015,7 +1015,7 @@ def communicability():
     An_ = An__ + min_angle - n.identity(N) * min_angle
     An = n.real( n.maximum(An_, An_.T) ) # communicability angles matrix
 
-    E_original = n.linalg.eigvals(An)
+    # E_original = n.linalg.eigvals(An)
 
     if f['dimredtype'] == 'MDS':
         embedding = MDS(n_components=int(f['dim']), n_init=int(f['inits']), max_iter=int(f['iters']), n_jobs=-1, dissimilarity='precomputed')
