@@ -995,7 +995,7 @@ def communicability():
     with open(fname, 'w') as f_:
         f_.write(network_['data'])
     A = n.loadtxt(fname)
-    As = n.maximum(A, A.T) - n.diag(A)
+    As = n.maximum(A, A.T) - n.diag(n.diag(A))
     print(A, As, "<<<<<<<<<< A As")
     N = As.shape[0]
 
@@ -1004,8 +1004,8 @@ def communicability():
 
     u = n.matrix(n.ones(N)).T
 
-    CD = n.dot(sc, u.T) + n.dot(u, sc.T) -2 * G  # squared communicability distance matrix
-    X = n.array(CD) ** .5  # communicability distance matrix
+    # CD = n.dot(sc, u.T) + n.dot(u, sc.T) -2 * G  # squared communicability distance matrix
+    # X = n.array(CD) ** .5  # communicability distance matrix
 
     An___ = n.arccos(G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T))) ** .5)
     An__ = n.degrees(An___)
