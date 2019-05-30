@@ -14,6 +14,7 @@ class Connection:
         # a layer is a network with specific layer number and coarsening method
         # layer == 0 for the original (uncoarsened) network
         self.networks = self.db['networks']
+        self.genes = self.db['genes']
         # any network may have a layout given by the network _id and the layout method
         self.layouts = self.db['layouts']
 

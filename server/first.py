@@ -112,6 +112,18 @@ def biEnsureRendered(bi, netid):
             # db.getNetLayout(network_id['_id'], bi, int(layer_), layout, dim, tnet)
             db.getNetLayout(netid, bi, int(layer_), layout, dim, tnet)
 
+@app.route("/geneData/", methods=['POST'])
+def geneData():
+    r = request.get_json()
+    g = r['gene']
+    co = [i['co'] for i in db.db['correlations'].find({'gene': g}, {'co':1,'_id':0})]
+    return jsonify(co[0])
+
+@app.route("/genes/", methods=['POST'])
+def genes():
+    genes = [i['gene'] for i in db.db['correlations'].find({}, {'gene':1,'_id':0})]
+    return jsonify(genes)
+
 @app.route("/layoutOnDemand/", methods=['POST'])
 def layoutOnDemand():
     # print(request.form)
