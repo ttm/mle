@@ -216,6 +216,8 @@ def biMLDBtopdown():
             suc = parseMlTxt(fname.replace('.ncol', '.successor'), False)
         else:
             sou = pred = suc = [[]] * nnodes
+        if count == len(fnames) - 1:
+            suc = [None] * nnodes
         layer_ = {
             'links': links, 'sources': sou,
             'children': pred, 'parents': suc,
