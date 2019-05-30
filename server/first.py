@@ -7,6 +7,9 @@ import numpy as n, networkx as x, percolation as p
 import sys, json, os, pickle
 from scipy.linalg import expm
 from sklearn.manifold import MDS, TSNE
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
 keys=tuple(sys.modules.keys())
 for key in keys:
     if ("ml" in key) or ("multilevel" in key):
@@ -86,7 +89,6 @@ def biEnsureRendered(bi, netid):
 
         fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
         fnames.sort()
-        print('fnames =======>', fnames)
         tnet = db.getNetLayer(netid, bi, 0)
         db.getNetLayout(netid, bi, 0, layout, dim, tnet)
         for fname in fnames:
@@ -113,7 +115,6 @@ def biEnsureRendered(bi, netid):
 @app.route("/layoutOnDemand/", methods=['POST'])
 def layoutOnDemand():
     # print(request.form)
-    print(request.get_json(), 'baby')
     r = request.get_json()
     l = r['layout']
     d = r['dim']
@@ -123,7 +124,6 @@ def layoutOnDemand():
     for n_ in nodes: g.add_node(n_)
     for ll in links: g.add_edge(ll[0], ll[1], weight=ll[2])
     if 'bipartite' in l:
-        print(r['l0'], '<<<<========= HERE')
         l_ = layouts[l](g, r['l0'])
     else:
         l_ = layouts[l](g, dim=d)
@@ -142,28 +142,23 @@ def layoutOnDemand():
         l__[:, 1] += 0.1
     # pos = {n: l_[n].tolist() for n in nodes}
     # pos = l__.tolist()
-    print(l__, l__.shape, '<========== tshape')
     pos = {n: l__[i].tolist() for i, n in enumerate(nodes)}
     return jsonify(pos)
 
 @app.route("/biMLDBgetinfo/", methods=['POST'])
 def biMLDBgetinfo():
-    print('ok 1')
     netid = request.form['netid']
     query = {'_id': ObjectId(netid), 'layer': 0}
     network_ = db.networks.find_one(query)
     data = network_['data']
-    print('ok 2')
     links = n.loadtxt(StringIO(data), skiprows=0, dtype=float).astype(int)
     nnodes = len(set(links[:, 0]).union(links[:, 1]))
     fltwo = len(set(links[:,0]))
-    print('ok 3')
     info = {
         'n2': nnodes - fltwo,
         'n1': fltwo,
         'l': len(links)
     }
-    print('ok 4')
     return jsonify(info)
 
 @app.route("/biMLDBtopdown/", methods=['POST'])
@@ -236,7 +231,6 @@ def biGetLastLevel():
     dname = './mlpb/' + mkSafeFname(netid) + mkSafeFname(str(bi))
     fnames = [i for i in os.listdir(dname) if i.endswith('.ncol')]
     levels = [int(i[-6]) for i in fnames]
-    print('levels::::::::: ', levels)
     return str(max(levels))
             
 @app.route("/biMLDB/", methods=['POST'])
@@ -1034,5 +1028,21 @@ def communicability():
     print('sdata', sphere_data, '<<<< ==== sdata')
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
 
-    return jsonify({'nodes': p_.tolist(), 'links': ll, 'sdata': sphere_data})
+    # detecting communities
+    km = []
+    ev = []
+    nclusts = list(range(int(f['ncluin']), int(f['nclu'])+1))
+    for i in nclusts:
+        kmeans = KMeans(n_clusters=i, random_state=0).fit(An)
+        km.append(kmeans)
+        # score = silhouette_score(An, kmeans.labels_, metric='precomputed')
+        score = silhouette_score(An, kmeans.labels_)
+        ev.append(score)
+    km_ = [[int(j) for j in i.labels_] for i in km]
+    print(ev, km_, '<<<<<<<<<= HEREEEE')
+
+    return jsonify({
+        'nodes': p_.tolist(), 'links': ll, 'sdata': sphere_data,
+        'ev': ev, 'clusts': km_
+    })
             
