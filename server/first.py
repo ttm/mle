@@ -996,6 +996,24 @@ def getSphere(points):
 
 
 mfnames = {'dolphins': 'dolphinsA.txt', 'zackar': 'ZackarA.txt'}
+@app.route("/communicabilityNets/", methods=['POST'])
+def communicabilityNets():
+    ns = [i for i in db.networks.find({'filename':{'$regex':'.txt$'}}, {'filename': 1, 'data': 1})]
+    nets = []
+    for net in ns:
+        A = n.loadtxt(StringIO(net['data']))
+        nnodes = A.shape[0]
+        nlinks = (A - n.diag( n.diag(A) )).sum() / 2
+        nets.append( {
+            'filename': net['filename'],
+            'nnodes': nnodes,
+            'nlinks': nlinks,
+            '_id': str(net['_id'])
+        })
+    return jsonify(nets)
+
+
+
 @app.route("/communicability/", methods=['POST'])
 def communicability():
     f = request.form
@@ -1005,9 +1023,10 @@ def communicability():
     network_ = db.networks.find_one(query)
     # A = n.loadtxt('../data/matrix/' + mfnames[f['net']])
     fname = '../data/matrix/' + network_['filename']
-    with open(fname, 'w') as f_:
-        f_.write(network_['data'])
-    A = n.loadtxt(fname)
+    # with open(fname, 'w') as f_:
+    #     f_.write(network_['data'])
+    # A = n.loadtxt(fname)
+    A = n.loadtxt(StringIO(network_['data']))
     As = n.maximum(A, A.T) - n.diag(n.diag(A))
     N = As.shape[0]
 
