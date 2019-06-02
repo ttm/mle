@@ -1003,7 +1003,7 @@ def communicabilityNets():
     for net in ns:
         A = n.loadtxt(StringIO(net['data']))
         nnodes = A.shape[0]
-        nlinks = (n.maximum(A, A.T) - n.diag(n.diag(A))) / 2
+        nlinks = (n.maximum(A, A.T) - n.diag(n.diag(A))).sum() / 2
         nets.append( {
             'filename': net['filename'],
             'nnodes': nnodes,
