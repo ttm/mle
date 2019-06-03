@@ -9,6 +9,7 @@ from scipy.linalg import expm
 from sklearn.manifold import MDS, TSNE
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+import circle_fit as cf
 
 keys=tuple(sys.modules.keys())
 for key in keys:
@@ -1051,11 +1052,27 @@ def communicability():
         embedding = TSNE(n_components=int(f['dim']), n_iter=int(f['iters']), metric='precomputed', learning_rate=int(f['lrate']), perplexity=int(f['perplexity']))
     p = positions = embedding.fit_transform(An)
 
-    p_ = .8 * (p - p.min()) / (p.max() - p.min()) - 0.4
-    p_[:,0] = (p[:,0] - p[:,0].min()) / (p[:,0].max() - p[:,0].min()) - 0.5
-    p_[:,1] = (p[:,1] - p[:,1].min()) / (p[:,1].max() - p[:,1].min()) - 0.5
-    p_[:,2] = (p[:,2] - p[:,2].min()) / (p[:,2].max() - p[:,2].min()) - 0.5
-    sphere_data = getSphere(p_)
+    p = .7 * p / n.abs(p).max()
+    # p = .8 * (p - p.min()) / (p.max() - p.min()) - 0.4
+    # p[:,0] = (p[:,0] - p[:,0].min()) / (p[:,0].max() - p[:,0].min()) - 0.5
+    # p[:,1] = (p[:,1] - p[:,1].min()) / (p[:,1].max() - p[:,1].min()) - 0.5
+    if p.shape[1] == 3:
+        # p[:,2] = (p[:,2] - p[:,2].min()) / (p[:,2].max() - p[:,2].min()) - 0.5
+        sphere_data = getSphere(p)
+    else:
+        # foo = cf.least_squares_circle(p)
+        # dists = (
+        #         (p[:,0] - foo[0])**2
+        #     +   (p[:,1] - foo[1])**2
+        # ) ** 0.5
+        # sphere_data = {
+        #         'c': [foo[0], foo[1], 0],
+        #         'r': foo[2],
+        #         'mean': dists.mean(),
+        #         'std': dists.std(),
+        #         '2d': True
+        # }
+        sphere_data = getSphere(n.vstack((p.T, n.zeros(p.shape[0]))).T)
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
 
     # detecting communities
@@ -1068,13 +1085,13 @@ def communicability():
         km.append([0]*N)
     nclusts = list(range(minclu, int(f['nclu'])+1))
     for i in nclusts:
-        kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(p_)
+        kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(p)
         km.append([int(j) for j in kmeans.labels_])
-        score = silhouette_score(p_, kmeans.labels_)
+        score = silhouette_score(p, kmeans.labels_)
         ev.append(score)
 
     return jsonify({
-        'nodes': p_.tolist(), 'links': ll, 'sdata': sphere_data,
+        'nodes': p.tolist(), 'links': ll, 'sdata': sphere_data,
         'ev': ev, 'clusts': km
     })
             
