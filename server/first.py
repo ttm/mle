@@ -1063,17 +1063,21 @@ def communicability():
     # detecting communities
     km = []
     ev = []
-    nclusts = list(range(int(f['ncluin']), int(f['nclu'])+1))
+    minclu = int(f['ncluin'])
+    if minclu == 1:
+        minclu = 2
+        ev.append(-5)
+        km.append([0]*N)
+    nclusts = list(range(minclu, int(f['nclu'])+1))
     for i in nclusts:
         kmeans = KMeans(n_clusters=i, random_state=0).fit(An)
-        km.append(kmeans)
+        km.append([int(j) for j in kmeans.labels_])
         # score = silhouette_score(An, kmeans.labels_, metric='precomputed')
         score = silhouette_score(An, kmeans.labels_)
         ev.append(score)
-    km_ = [[int(j) for j in i.labels_] for i in km]
 
     return jsonify({
         'nodes': p_.tolist(), 'links': ll, 'sdata': sphere_data,
-        'ev': ev, 'clusts': km_
+        'ev': ev, 'clusts': km
     })
             
