@@ -1017,12 +1017,13 @@ def communicabilityNets():
 @app.route("/communicability/", methods=['POST'])
 def communicability():
     f = request.form
+    print(f)
 
     netid = request.form['netid']
     query = {'_id': ObjectId(netid), 'layer': 0}
     network_ = db.networks.find_one(query)
     # A = n.loadtxt('../data/matrix/' + mfnames[f['net']])
-    fname = '../data/matrix/' + network_['filename']
+    # fname = '../data/matrix/' + network_['filename']
     # with open(fname, 'w') as f_:
     #     f_.write(network_['data'])
     # A = n.loadtxt(fname)
@@ -1038,9 +1039,12 @@ def communicability():
     # CD = n.dot(sc, u.T) + n.dot(u, sc.T) -2 * G  # squared communicability distance matrix
     # X = n.array(CD) ** .5  # communicability distance matrix
 
-    An___ = n.arccos(G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T))) ** .5)
+    c = G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T))) ** .5
+    c[c > 1] = 1
+    An___ = n.arccos(c)
+    # An___ = n.arccos((G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T)))) ** .5)
     An__ = n.degrees(An___)
-    min_angle = float(f['mangle'])
+    min_angle = float(f['mangle'])*10e-6
     An_ = An__ + min_angle - n.identity(N) * min_angle
     An = n.real( n.maximum(An_, An_.T) ) # communicability angles matrix
 
