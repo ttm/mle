@@ -9,7 +9,7 @@ from scipy.linalg import expm
 from sklearn.manifold import MDS, TSNE
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-import circle_fit as cf
+# import circle_fit as cf
 
 keys=tuple(sys.modules.keys())
 for key in keys:
