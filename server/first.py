@@ -1022,11 +1022,6 @@ def communicability():
     netid = request.form['netid']
     query = {'_id': ObjectId(netid), 'layer': 0}
     network_ = db.networks.find_one(query)
-    # A = n.loadtxt('../data/matrix/' + mfnames[f['net']])
-    # fname = '../data/matrix/' + network_['filename']
-    # with open(fname, 'w') as f_:
-    #     f_.write(network_['data'])
-    # A = n.loadtxt(fname)
     A = n.loadtxt(StringIO(network_['data']))
     As = n.maximum(A, A.T) - n.diag(n.diag(A))
     N = As.shape[0]
@@ -1056,7 +1051,10 @@ def communicability():
         embedding = TSNE(n_components=int(f['dim']), n_iter=int(f['iters']), metric='precomputed', learning_rate=int(f['lrate']), perplexity=int(f['perplexity']))
     p = positions = embedding.fit_transform(An)
 
-    p_ = .8 * p / n.abs(p).max()
+    p_ = .8 * (p - p.min()) / (p.max() - p.min()) - 0.4
+    p_[:,0] = (p[:,0] - p[:,0].min()) / (p[:,0].max() - p[:,0].min()) - 0.5
+    p_[:,1] = (p[:,1] - p[:,1].min()) / (p[:,1].max() - p[:,1].min()) - 0.5
+    p_[:,2] = (p[:,2] - p[:,2].min()) / (p[:,2].max() - p[:,2].min()) - 0.5
     sphere_data = getSphere(p_)
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
 
@@ -1070,10 +1068,9 @@ def communicability():
         km.append([0]*N)
     nclusts = list(range(minclu, int(f['nclu'])+1))
     for i in nclusts:
-        kmeans = KMeans(n_clusters=i, random_state=0).fit(An)
+        kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(p_)
         km.append([int(j) for j in kmeans.labels_])
-        # score = silhouette_score(An, kmeans.labels_, metric='precomputed')
-        score = silhouette_score(An, kmeans.labels_)
+        score = silhouette_score(p_, kmeans.labels_)
         ev.append(score)
 
     return jsonify({
