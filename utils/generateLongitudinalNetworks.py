@@ -31,3 +31,12 @@ def mkScaleFree(n, m, fname, format_='json'):
     else:
         with open(fname, 'w') as f:
             json.dump(edges, f)
+
+# mkScaleFree(50, 560, 'scalefree.enet')
+# mkScaleFree(50, 560, 'scalefree.enet')
+# mkScaleFree(150, 20, 'scalefree.enet')
+# mkScaleFree(50, 40, 'scalefree.enet')
+# mkScaleFree(50, 30, 'scalefree.enet')
+# mkScaleFree(50, 20, 'scalefree.enet')
+# mkScaleFree(50, 20, 'scalefree.enet')
+mkScaleFree(150, 20, 'scalefree.enet')

@@ -435,9 +435,12 @@ def postTest3():
     sec_method = request.form['sec_method']
     hip_perc = [int(i)/100 for i in request.form.getlist('hip_perc[]')]
     # with open('../utils/here.enet', 'r') as f:
-    # with open('../utils/scalefree.enet', 'r') as f:
-    with open('../utils/here.enet', 'r') as f:
-        edges_ = json.load(f)
+    if request.form['scf'] != 'false':
+        with open('../utils/scalefree.enet', 'r') as f:
+            edges_ = json.load(f)
+    else:
+        with open('../utils/here.enet', 'r') as f:
+            edges_ = json.load(f)
 
     e = edges_[mrange[0]:mrange[1]+1]
     count = 0
