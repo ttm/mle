@@ -3,8 +3,8 @@ from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
 from bson.objectid import ObjectId
 from io import StringIO
-import numpy as n, networkx as x, percolation as p
-import sys, json, os, pickle
+import numpy as n, networkx as x, percolation as p, nltk as k, gmaneLegacy as gl
+import sys, json, os, pickle, random
 from scipy.linalg import expm
 from sklearn.manifold import MDS, TSNE
 from sklearn.cluster import KMeans
@@ -1097,4 +1097,48 @@ def communicability():
         'nodes': p.tolist(), 'links': ll, 'sdata': sphere_data,
         'ev': ev, 'clusts': km
     })
-            
+
+@app.route("/getTextNetwork/", methods=['POST'])
+def getTextNetwork():
+    # mkNet
+    # sendNet
+    nn = n.random.randint(40,100)
+    mm = n.random.randint(20,nn)
+    g = x.barabasi_albert_graph(nn, mm)
+    nodes = [i for i in g.nodes()]
+    edges = [(i, j) for i, j in g.edges]
+    texts = getRandomTexts(len(nodes))
+    data = {
+        'nodes': nodes,
+        'links': edges,
+        'texts': texts
+    }
+    return jsonify(data)
+
+def getRandomTexts(nn):
+    fids = k.corpus.brown.fileids()[:]
+    texts = []
+    while len(texts) < nn:
+        fid = random.choice(fids)
+        texts.append(' '.join(k.corpus.brown.words(fid)))
+        fids.pop(fids.index(fid))
+    return texts
+
+@app.route("/anTexts/", methods=['POST'])
+def anTexts():
+    r = request.get_json()
+    t1 = r['t1']
+    t2 = r['t2']
+    l1 = [len(i) for i in t1.split()]
+    l2 = [len(i) for i in t2.split()]
+    m1 = n.mean(l1)
+    d1 = n.std(l1)
+    m2 = n.mean(l2)
+    d2 = n.std(l2)
+
+    # ks statistic:
+    ks = gl.kolmogorovSmirnovDistance_(l1,l2)
+    return jsonify({
+        'l': [m1,m2,d1,d2],
+        'c': ks
+    })
