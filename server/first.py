@@ -1142,3 +1142,6 @@ def anTexts():
         'l': [m1,m2,d1,d2],
         'c': ks
     })
+@app.route("/anSound/", methods=['POST'])
+def anSound():
+    pass
