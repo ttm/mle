@@ -1144,4 +1144,30 @@ def anTexts():
     })
 @app.route("/anSound/", methods=['POST'])
 def anSound():
-    pass
+    # mk sound excerpt with start and end instants
+    r = request.get_json()
+    s = r['s']
+    e = r['e']
+    d = e - s
+    npath = os.environ['nuxtPATH']
+    npath_ = npath + 'static/audio/'
+    print('sox %sbirds.wav %sbirds_.wav trim %f %f' % (npath_, npath_, s, d))
+    os.system('sox %sbirds.wav %sbirds_.wav trim %f %f' % (npath_, npath_, s, d))
+    # mk arguments
+    os.system('python2 ./AA/mkAn.py birds_.wav')
+    # run analysis
+    # save files to netText/static/audio/
+
+    return 'ok'
+
+@app.route("/findEvents/", methods=['POST'])
+def findEvents():
+    # mk sound excerpt with start and end instants
+    r = request.get_json()
+    c = r['c'] - 1
+    npath = os.environ['nuxtPATH']
+    npath_ = npath + 'static/audio/component%d.wav' % (c,)
+    # run analysis
+    # save files to netText/static/audio/
+
+    return 'ok'
