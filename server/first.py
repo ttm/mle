@@ -1089,7 +1089,10 @@ def communicability():
     nclusts = list(range(minclu, int(f['nclu'])+1))
     for i in nclusts:
         # kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(p)
-        kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(An)
+        if f['cdmethod'] == 'an':
+            kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(An)
+        else:
+            kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(p)
         km.append([int(j) for j in kmeans.labels_])
         score = silhouette_score(p, kmeans.labels_)
         ev.append(score)
