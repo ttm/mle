@@ -1035,8 +1035,9 @@ def communicability():
 
     u = n.matrix(n.ones(N)).T
 
-    # CD = n.dot(sc, u.T) + n.dot(u, sc.T) -2 * G  # squared communicability distance matrix
-    # X = n.array(CD) ** .5  # communicability distance matrix
+    if f['cdmethod'] == 'dist':
+        CD = n.dot(sc, u.T) + n.dot(u, sc.T) -2 * G  # squared communicability distance matrix
+        X = n.array(CD) ** .5  # communicability distance matrix
 
     c = G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T))) ** .5
     c[c > 1] = 1
@@ -1056,25 +1057,9 @@ def communicability():
     p = positions = embedding.fit_transform(An)
 
     p = .7 * p / n.abs(p).max()
-    # p = .8 * (p - p.min()) / (p.max() - p.min()) - 0.4
-    # p[:,0] = (p[:,0] - p[:,0].min()) / (p[:,0].max() - p[:,0].min()) - 0.5
-    # p[:,1] = (p[:,1] - p[:,1].min()) / (p[:,1].max() - p[:,1].min()) - 0.5
     if p.shape[1] == 3:
-        # p[:,2] = (p[:,2] - p[:,2].min()) / (p[:,2].max() - p[:,2].min()) - 0.5
         sphere_data = getSphere(p)
     else:
-        # foo = cf.least_squares_circle(p)
-        # dists = (
-        #         (p[:,0] - foo[0])**2
-        #     +   (p[:,1] - foo[1])**2
-        # ) ** 0.5
-        # sphere_data = {
-        #         'c': [foo[0], foo[1], 0],
-        #         'r': foo[2],
-        #         'mean': dists.mean(),
-        #         'std': dists.std(),
-        #         '2d': True
-        # }
         sphere_data = getSphere(n.vstack((p.T, n.zeros(p.shape[0]))).T)
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
 
@@ -1087,12 +1072,20 @@ def communicability():
         ev.append(-5)
         km.append([0]*N)
     nclusts = list(range(minclu, int(f['nclu'])+1))
+
+    if f['cdmethod'] == 'dist' and f['cddim'] == 'rd':
+        X_ = embedding.fit_transform(X)
     for i in nclusts:
         # kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(p)
-        if f['cdmethod'] == 'an':
+        if f['cdmethod'] == 'an' and f['cddim'] == 'nd':
             kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(An)
-        else:
+        if f['cdmethod'] == 'an' and f['cddim'] == 'rd':
             kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(p)
+        if f['cdmethod'] == 'dist':
+            if f['cddim'] == 'nd':
+                kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(X)
+            if f['cddim'] == 'rd':
+                kmeans = KMeans(n_clusters=i, n_init=100, max_iter=3000, n_jobs=-1, tol=1e-6).fit(X_)
         km.append([int(j) for j in kmeans.labels_])
         score = silhouette_score(p, kmeans.labels_)
         ev.append(score)
