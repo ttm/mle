@@ -1005,7 +1005,11 @@ def communicabilityNets():
     ns = [i for i in db.networks.find({'filename':{'$regex':'.txt$'}}, {'filename': 1, 'data': 1})]
     nets = []
     for net in ns:
-        A = n.loadtxt(StringIO(net['data']))
+        # print(net, '<<=======BBBBBB')
+        if ',' in net['data']:
+            A = n.loadtxt(StringIO(net['data']), delimiter=',')
+        else:
+            A = n.loadtxt(StringIO(net['data']))
         nnodes = A.shape[0]
         nlinks = (n.maximum(A, A.T) - n.diag(n.diag(A))).sum() / 2
         nets.append( {
@@ -1021,7 +1025,6 @@ def communicabilityNets():
 @app.route("/communicability/", methods=['POST'])
 def communicability():
     f = request.form
-    print(f)
 
     netid = request.form['netid']
     query = {'_id': ObjectId(netid), 'layer': 0}
