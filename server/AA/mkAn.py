@@ -27,7 +27,8 @@ s3.reconstruct_individual_spectra()
 # In[98]:
 
 ii = 0
+fname__ = fname.replace('MMMEXCERPT.wav', 'MMMCOMPONENT')
 for i in s3.X_hat_l:
     x_hat = F.inverse(i)
-    m.core.W(x_hat, npath_ + 'component%d.wav' % (ii))
+    m.core.W(x_hat, npath_ + '%s%d.wav' % (fname__, ii))
     ii += 1

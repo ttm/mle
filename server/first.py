@@ -1148,10 +1148,13 @@ def anSound():
     d = e - s
     npath = os.environ['nuxtPATH']
     npath_ = npath + 'static/audio/'
-    print('sox %sbirds.wav %sbirds_.wav trim %f %f' % (npath_, npath_, s, d))
-    os.system('sox %sbirds.wav %sbirds_.wav trim %f %f' % (npath_, npath_, s, d))
+    fn = r['fname']
+    fn2 = fn.replace('.wav', 'MMMEXCERPT.wav')
+    cmd = 'sox %s%s %s%s trim %f %f' % (npath_, fn, npath_, fn2, s, d)
+    print(cmd)
+    os.system(cmd)
     # mk arguments
-    os.system('python2 ./AA/mkAn.py birds_.wav')
+    os.system('python2 ./AA/mkAn.py %s' % (fn2,))
     # run analysis
     # save files to netText/static/audio/
 
@@ -1163,8 +1166,64 @@ def findEvents():
     r = request.get_json()
     c = r['c'] - 1
     npath = os.environ['nuxtPATH']
-    npath_ = npath + 'static/audio/component%d.wav' % (c,)
+    npath_ = npath + 'static/audio/MMMcomponent%d.wav' % (c,)
     # run analysis
     # save files to netText/static/audio/
 
+    return 'ok'
+
+@app.route("/getSoundfiles/", methods=['POST'])
+def getSoundfiles():
+    npath = os.environ['nuxtPATH']
+    npath_ = npath + 'static/audio/'
+    print(npath_)
+    fnames = os.listdir(npath_)
+    fnames_ = [i for i in fnames if 'MMMcomponent' not in i]
+    fnames_ = [i for i in fnames if 'MMMEXCERPT' not in i]
+    print(fnames_)
+    return jsonify( fnames_ )
+
+import wave
+@app.route("/sfileInfo/", methods=['POST'])
+def sfileInfo():
+    r = request.get_json()
+    fname = r['fname']
+    npath = os.environ['nuxtPATH']
+    fname_ = npath + 'static/audio/' + fname
+    with wave.open(fname_, 'r') as f:
+        frames = f.getnframes()
+        rate = f.getframerate()
+        duration = frames / float(rate)
+    return jsonify(duration)
+
+import base64, re
+
+def decode_base64(data, altchars=b'+/'):
+    """Decode base64, padding being optional.
+
+    :param data: Base64 data as an ASCII byte string
+    :returns: The decoded byte string.
+
+    """
+    data = re.sub(rb'[^a-zA-Z0-9%s]+' % altchars, b'', data)  # normalize
+    missing_padding = len(data) % 4
+    if missing_padding:
+        data += b'='* (4 - missing_padding)
+    return base64.b64decode(data, altchars)
+
+@app.route("/saveSound/", methods=['POST'])
+def saveSound():
+    r = request.get_json()
+    fname = r['fname']
+    # data = decode_base64(r['fdata'])
+    b64 = r['fdata']
+    # data = base64.b64decode(b64)
+    idict = re.match("data:(?P<type>.*?);(?P<encoding>.*?),(?P<data>.*)", b64).groupdict()
+    # blob = idict['data'].decode(idict['encoding'], 'strict')
+    blob = base64.b64decode(idict['data'])
+    
+    npath = os.environ['nuxtPATH']
+    fname_ = npath + 'static/audio/' + fname
+    with open(fname_, 'wb') as f:
+        f.write(blob)
     return 'ok'
