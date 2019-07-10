@@ -4,6 +4,7 @@ import sys
 import music as m
 
 fname = sys.argv[1]
+nc = int(sys.argv[2])
 npath = os.environ['nuxtPATH']
 npath_ = npath + 'static/audio/'
 fname_ = npath_ + fname
@@ -13,7 +14,7 @@ F = LogFrequencySpectrum(fname_, nhop=1024, nfft=8192, wfft=4096, npo=24) # cons
 pargs = {'normalize':True, 'dbscale':True, 'cmap':cm.hot, 'vmax':0, 'vmin':-45} # plot arguments
 
 s3 = A.SparseApproxSpectrumPLCA2D(patch_size=(12,8)) # Same idea as above, but with non-negative components
-s3.extract_codes(F, n_components=3, log_amplitude=True, alphaW=0.0, alphaZ=0.0, alphaH=0.0, betaW=0.00, betaZ=0.001, betaH=0.00)
+s3.extract_codes(F, n_components=nc, log_amplitude=True, alphaW=0.0, alphaZ=0.0, alphaH=0.0, betaW=0.00, betaZ=0.001, betaH=0.00)
 # s3.plot_codes(cbar=True, cmap=cm.hot)
 
 

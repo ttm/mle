@@ -1148,6 +1148,7 @@ def anSound():
     r = request.get_json()
     s = r['s']
     e = r['e']
+    nc = int(r['ncomp'])
     d = e - s
     npath = os.environ['nuxtPATH']
     npath_ = npath + 'static/audio/'
@@ -1157,7 +1158,7 @@ def anSound():
     print(cmd)
     os.system(cmd)
     # mk arguments
-    os.system('python2 ./AA/mkAn.py %s' % (fn2,))
+    os.system('python2 ./AA/mkAn.py %s %d' % (fn2, nc))
     # run analysis
     # save files to netText/static/audio/
 
