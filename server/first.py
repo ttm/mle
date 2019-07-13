@@ -4,12 +4,19 @@ from flask_cors import CORS
 from bson.objectid import ObjectId
 from io import StringIO
 import numpy as n, networkx as x, percolation as p, nltk as k, gmaneLegacy as gl
-import sys, json, os, pickle, random
+import sys, json, os, pickle, random, time as t
 from scipy.linalg import expm
-from sklearn.manifold import MDS, TSNE
-from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
-# import circle_fit as cf
+from sklearn.manifold import MDS, Isomap, LocallyLinearEmbedding
+# http://lvdmaaten.github.io/publications/papers/JMLR_2014.pdf
+from MulticoreTSNE import MulticoreTSNE as TSNE
+from sklearn.decomposition import PCA
+import umap  # https://umap-learn.readthedocs.io/en/latest/
+from sklearn.cluster import KMeans, AgglomerativeClustering, DBSCAN, SpectralClustering, AffinityPropagation
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import warnings
+warnings.filterwarnings('ignore')
 
 keys=tuple(sys.modules.keys())
 for key in keys:
@@ -1021,6 +1028,128 @@ def communicabilityNets():
     return jsonify(nets)
 
 
+@app.route("/communicability2/", methods=['POST'])
+def communicability2():
+    def decompose(dimred, dim, nneigh):
+        print(dimred, dim, nneigh, [type(i) for i in (dimred, dim, nneigh)])
+        if dimred == 'MDS': # slowest!
+            embedding = MDS(n_components=dim, n_init=__inits, max_iter=__iters, n_jobs=-1)
+        elif dimred == 'ISOMAP': # slow
+            embedding = Isomap(n_neighbors=nneigh, n_components=dim, n_jobs=-1)
+        elif dimred == 'LLE': # slow-acceptable
+            embedding = LocallyLinearEmbedding(n_neighbors=nneigh, n_components=dim, n_jobs=-1)
+        elif dimred == 'TSNE': # acceptable
+            embedding = TSNE(n_components=dim, n_iter=__iters, learning_rate=__lrate, perplexity=__perplexity)
+        elif dimred == 'UMAP': # fast
+            embedding = umap.UMAP(n_neighbors=nneigh, n_components=dim, min_dist=0.1)
+        elif dimred == 'PCA': # fastest!
+            embedding = PCA(n_components=dim)
+        else:
+            raise ValueError('dimension reduction method not recognized')
+
+        positions = embedding.fit_transform(An)
+        return positions
+
+    def clust(clu, i):
+        if clu == 'KM': # very large
+            calg = KMeans(n_clusters=i, n_init=100,n_jobs=-1)
+        elif clu == 'AG': # large
+            calg = AgglomerativeClustering(n_clusters=i)
+        elif clu == 'SP': # medium
+            # calg = SpectralClustering(n_clusters=i, affinity='precomputed', n_jobs=-1)
+            calg = SpectralClustering(n_clusters=i, n_jobs=-1)
+        elif clu == 'AF': # not scalable
+            # calg = AffinityPropagation(n_clusters=i, affinity='precomputed', n_jobs=-1)
+            calg = AffinityPropagation()
+        else:
+            raise ValueError('clustering algorithm not recognized: ' + clu)
+        res = calg.fit(pC)
+        return [int(j) for j in res.labels_]
+    __inits = 30  # for MDS ~3
+    __iters = 1000  # for MDS (~100) and t-SNE (~250)
+    __perplexity = 5  # for t-SNE
+    __lrate = 12  # for t-SNE
+    f = request.get_json()
+    __dimred = f['dimredmetL']
+    __dimredC = f['dimredmet']
+    __clu = f['clustmet']
+    # __dis = 'precomputed'
+    __dim =     int(f['dim'])
+    __dimC =    int(f['cdim'])
+    __nneigh =  int(f['nneighborsL'])
+    __nneighC = int(f['nneighbors'])
+    __minclu =  int(f['ncluin'])
+    __nclu =    int(f['nclu'])
+    netid = f['netid']
+    query = {'_id': ObjectId(netid), 'layer': 0}
+    network_ = db.networks.find_one(query)
+    dd = {}
+    tt = t.time()
+    A = n.loadtxt(StringIO(network_['data']))
+    As = n.maximum(A, A.T) - n.diag(n.diag(A))
+    N = As.shape[0]
+
+    G = expm(float(f['temp'])*As)  # communicability matrix using Pade approximation
+    sc = n.matrix(n.diag(G)).T  # vector of self-communicabilities
+    u = n.matrix(n.ones(N)).T
+
+    c = G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T))) ** .5
+    c[c > 1] = 1
+    An___ = n.arccos(c)
+    # An___ = n.arccos((G / (n.array(n.dot(sc, u.T)) * n.array( n.dot(u, sc.T)))) ** .5)
+    An__ = n.degrees(An___)
+    min_angle = float(f['mangle'])*10e-6
+    An_ = An__ + min_angle - n.identity(N) * min_angle
+    An = n.real( n.maximum(An_, An_.T) ) # communicability angles matrix
+    dd['communcability'] = t.time() - tt
+    tt = t.time()
+
+    p = decompose(__dimred, __dim, __nneigh)
+    dd['embedding'] = t.time() - tt
+    tt = t.time()
+
+    p = .7 * p / n.abs(p).max()
+    if p.shape[1] == 3:
+        sphere_data = getSphere(p)
+    else:
+        sphere_data = getSphere(n.vstack((p.T, n.zeros(p.shape[0]))).T)
+    dd['sphere'] = t.time() - tt
+    tt = t.time()
+
+    # detecting communities
+    if __dimC == N:
+        pC = An
+    elif (__dimredC == __dimred) and (__dimC == __dim):
+        pC = p
+    else:
+        pC = decompose(__dimredC, __dimC, __nneighC)
+        dd['second embedding'] = t.time() - tt
+        tt = t.time()
+    km = []
+    ev = []
+    if __minclu == 1:
+        __minclu = 2
+        ev.append(-5)
+        km.append([0]*N)
+    nclusts = list(range(__minclu, __nclu +1 ))
+    if __clu == 'AF':
+        labels = clust(__clu, 0)
+        km.append(labels)
+        ev.append(1)
+    else:
+        for i in nclusts:
+            labels = clust(__clu, i)
+            km.append(labels)
+            score = silhouette_score(pC, labels)
+            ev.append(score)
+    dd['clustering'] = t.time() - tt
+
+    ll = n.vstack( A.nonzero() ).T.tolist()  # links
+    return jsonify({
+        'nodes': p.tolist(), 'links': ll, 'sdata': sphere_data,
+        'ev': ev, 'clusts': km,
+        'durations': dd
+    })
 
 @app.route("/communicability/", methods=['POST'])
 def communicability():
