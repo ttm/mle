@@ -1147,6 +1147,7 @@ def communicability2():
     dd['clustering'] = t.time() - tt
 
     ll = n.vstack( A.nonzero() ).T.tolist()  # links
+    print('communicability2 out')
     return jsonify({
         'nodes': p.tolist(), 'links': ll, 'sdata': sphere_data,
         'ev': ev, 'clusts': km,
