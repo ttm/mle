@@ -1394,13 +1394,79 @@ def timestart():
     })
 
 
+import losd as l
+pl = l.plainQueryValues
+
+# get all snapshots:
+def getLOSD(mall=True):
+    if mall:
+        q = '''
+        SELECT ?s WHERE {
+          ?s a po:Snapshot .
+        }
+        '''
+        r = l.query(q)
+        res = pl(r)
+        q = '''
+        SELECT ?s WHERE {
+          ?s po:socialProtocol "Facebook" .
+        }
+        '''
+        r = l.query(q)
+        res2 = pl(r)
+        # get name-related links between FB snapshots (nodes)
+
+        # q = '''
+        # SELECT (COUNT(?a1) as ?c1) (COUNT(?a2) as ?c2) WHERE {
+        #     ?f a po:Friendship .
+        #     ?f po:member ?a1, ?a2 .
+        #     FILTER(?a1 != ?a2)
+        # }
+        # '''
+        # r = l.query(q)
+        q = '''
+        SELECT (COUNT(DISTINCT ?author) as ?c) WHERE {
+            ?author a po:Participant . 
+        }
+        '''
+        r = l.query(q)
+        res3 = pl(r)
+
+        q = '''
+        SELECT (COUNT(DISTINCT ?f) as ?cf) WHERE {
+            ?f a po:Friendship . 
+        }
+        '''
+        r = l.query(q)
+        res4 = pl(r)
+        return res, res2, res3, res4
+    return ''
+
+
 @app.route("/mynsa/", methods=['POST'])
 def mynsa():
     r = request.get_json()
-    name = r['name']
-    name_ = r['name_']
+    data = {}
+    more = ''
+    if 'name' in r:
+        name = r['name']
+        name_ = r['name_']
+        name__ = r['name__']
+    elif 'name_' in r:
+        nm = r['name_']
+        if nm[0] == 'all' and nm[1] == 'nodes':
+            more = 'yet them dw.py'
+            more_ = getLOSD()
+    bi = locals()
+    del bi['r']
     return jsonify({
         'ainfo': 56,
-        'aname': name,
-        'aname_': name_,
+        'all': bi,
+    })
+
+@app.route("/mynsaLog/", methods=['POST'])
+def mynsaLog():
+    r = request.get_json()
+    return jsonify({
+        'ainfo': 56,
     })
