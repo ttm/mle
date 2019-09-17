@@ -1407,6 +1407,8 @@ def getLOSD(mall=True):
         '''
         r = l.query(q)
         res = pl(r)
+        # len(res) = 117
+
         q = '''
         SELECT ?s WHERE {
           ?s po:socialProtocol "Facebook" .
@@ -1414,31 +1416,26 @@ def getLOSD(mall=True):
         '''
         r = l.query(q)
         res2 = pl(r)
+        # len res2 = 88
         # get name-related links between FB snapshots (nodes)
 
         # q = '''
-        # SELECT (COUNT(?a1) as ?c1) (COUNT(?a2) as ?c2) WHERE {
-        #     ?f a po:Friendship .
-        #     ?f po:member ?a1, ?a2 .
-        #     FILTER(?a1 != ?a2)
+        # SELECT (COUNT(DISTINCT ?author) as ?c) WHERE {
+        #     ?author a po:Participant . 
         # }
         # '''
         # r = l.query(q)
-        q = '''
-        SELECT (COUNT(DISTINCT ?author) as ?c) WHERE {
-            ?author a po:Participant . 
-        }
-        '''
-        r = l.query(q)
-        res3 = pl(r)
+        # res3 = pl(r)
+        res3 = 350284
 
-        q = '''
-        SELECT (COUNT(DISTINCT ?f) as ?cf) WHERE {
-            ?f a po:Friendship . 
-        }
-        '''
-        r = l.query(q)
-        res4 = pl(r)
+        # q = '''
+        # SELECT (COUNT(DISTINCT ?f) as ?cf) WHERE {
+        #     ?f a po:Friendship . 
+        # }
+        # '''
+        # r = l.query(q)
+        # res4 = pl(r)
+        res4 = 2409575
         return res, res2, res3, res4
     return ''
 
