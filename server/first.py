@@ -1382,19 +1382,25 @@ def timestart():
     mcalltimestart = now_milliseconds()
     r = request.get_json()
     return jsonify({
-            'msnowpyserver': msnowpyserver,
-            'msdatepyserver': msdatepyserver,
-            'mcall_sentfromserver': [
-                now_milliseconds(),
-                now_milliseconds(),
-                date_milliseconds(),
-                date_milliseconds(),
-                ],
-            'mcall_sentfromclient': r['requestTime']
+        'msnowpyserver': msnowpyserver,
+        'msdatepyserver': msdatepyserver,
+        'mcall_sentfromserver': [
+            now_milliseconds(),
+            now_milliseconds(),
+            date_milliseconds(),
+            date_milliseconds(),
+        ],
+        'mcall_sentfromclient': r['requestTime']
     })
 
 
-
-
-
-
+@app.route("/mynsa/", methods=['POST'])
+def mynsa():
+    r = request.get_json()
+    name = r['name']
+    name_ = r['name_']
+    return jsonify({
+        'ainfo': 56,
+        'aname': name,
+        'aname_': name_,
+    })
