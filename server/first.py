@@ -1439,6 +1439,17 @@ def getLOSD(mall=True):
         return res, res2, res3, res4
     return ''
 
+def getLOSDSnaps(mall=True):
+    if mall:
+        q = '''
+        SELECT ?s ?p WHERE {
+          ?s a po:Snapshot .
+          ?s po:socialProtocol ?p .
+        }
+        '''
+        r = l.query(q)
+        res = pl(r)
+        return res
 
 @app.route("/mynsa/", methods=['POST'])
 def mynsa():
@@ -1454,6 +1465,9 @@ def mynsa():
         if nm[0] == 'all' and nm[1] == 'nodes':
             more = 'yet them dw.py'
             more_ = getLOSD()
+        if nm[0] == 'all' and nm[1] == 'snaps':
+            more = 'yet them all.py'
+            more_ = getLOSDSnaps()
     bi = locals()
     del bi['r']
     return jsonify({
