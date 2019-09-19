@@ -1439,6 +1439,36 @@ def getLOSD(mall=True):
         return res, res2, res3, res4
     return ''
 
+@app.route("/mynsaParticipants/", methods=['POST'])
+def mynsaParticipants():
+    r = request.get_json()
+    q = '''
+    SELECT ?n WHERE {
+      ?p po:name ?n .
+      ?p po:snapshot <%s> .
+    }
+    ''' % (r['muri'], )
+    print(q)
+    r = l.query(q)
+    res = pl(r)
+    print(res)
+    return res
+
+def getLOSDNet(name):
+    # get all names of fb stuff
+    # return list of related names
+    # return most similar network
+    q = '''
+    SELECT ?s ?n WHERE {
+      ?s a po:Snapshot .
+      ?s po:socialProtocol 'Facebook' .
+      ?s po:name ?n .
+    }
+    '''
+    r = l.query(q)
+    res = pl(r)
+
+
 def getLOSDSnaps(mall=True):
     if mall == True:
         q = '''
@@ -1467,10 +1497,14 @@ def mynsa():
     r = request.get_json()
     data = {}
     more = ''
+    fbnet0 = 'lavanda0'
     if 'name' in r:
         name = r['name']
         name_ = r['name_']
         name__ = r['name__']
+        if bool(r['fbnet']):
+            fbnet = 'lavanda'
+            getLOSDFBNet(r['name'])
     elif 'name_' in r:
         nm = r['name_']
         if nm[0] == 'all' and nm[1] == 'nodes':
