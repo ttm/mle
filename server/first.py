@@ -1467,3 +1467,4 @@ def mynsaLog():
     return jsonify({
         'ainfo': 56,
     })
+
