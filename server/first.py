@@ -1440,11 +1440,22 @@ def getLOSD(mall=True):
     return ''
 
 def getLOSDSnaps(mall=True):
-    if mall:
+    if mall == True:
         q = '''
         SELECT ?s ?p WHERE {
           ?s a po:Snapshot .
           ?s po:socialProtocol ?p .
+        }
+        '''
+        r = l.query(q)
+        res = pl(r)
+        return res
+    elif mall == 'fb':
+        q = '''
+        SELECT ?s ?n WHERE {
+          ?s a po:Snapshot .
+          ?s po:socialProtocol 'Facebook' .
+          ?s po:name ?n .
         }
         '''
         r = l.query(q)
@@ -1468,6 +1479,7 @@ def mynsa():
         if nm[0] == 'all' and nm[1] == 'snaps':
             more = 'yet them all.py'
             more_ = getLOSDSnaps()
+            more__ = getLOSDSnaps('fb')
     bi = locals()
     del bi['r']
     return jsonify({
