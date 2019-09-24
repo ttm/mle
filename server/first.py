@@ -1542,7 +1542,7 @@ def getLOSDFBNet(name):
             ?f po:member ?a1, ?a2 .
             FILTER(?a1 != ?a2)
             }
-    ''' % (res[adists[0]][1],)
+    ''' % (res_[0][1],)
     print( q )
     r = l.query(q)
     res2 = pl(r)
@@ -1550,7 +1550,7 @@ def getLOSDFBNet(name):
     print( len(set([i[0] for i in res2])), len(set([i[1] for i in res2])) )
 
     # return network first 10 names
-    return res, res2
+    return res_, res2
 
 
 @app.route("/mynsa/", methods=['POST'])
