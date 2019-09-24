@@ -1492,6 +1492,67 @@ def getLOSDSnaps(mall=True):
         res = pl(r)
         return res
 
+def getLOSDNetsByName(name):
+    q = '''
+    SELECT ?s ?n WHERE {
+      ?s a po:Snapshot .
+      ?s po:socialProtocol 'Facebook' .
+      ?s po:name ?n .
+    }
+    '''
+    r = l.query(q)
+    res = pl(r)
+    dists = calcDists(res, name)
+    mdist = min(dists)
+    names = [res[i][0] for i in range(dists) if dists[i] == mdist]
+    print(names)
+    return res
+
+def calcDists(res, name):
+    dists = []
+    for r in res:
+        dists.append( calcDist(r[0], name) )
+    return dists
+
+from difflib import SequenceMatcher
+def calcDist(a, b):
+    return SequenceMatcher(None, a, b).ratio()
+
+def getLOSDFBNet(name):
+    q = '''
+    SELECT ?s ?n WHERE {
+      ?s a po:Snapshot .
+      ?s po:socialProtocol 'Facebook' .
+      ?s po:name ?n .
+    }
+    '''
+    r = l.query(q)
+    res = pl(r)
+    dists = calcDists(res, name)
+    mdist = min(dists)
+    adists = n.argsort(dists)[::-1]
+    res_ = [res[i] for i in adists]
+    names = [i[0] for i in res_]
+    print('+-=-=-=-=))))> ', name, names, len(names))
+
+    # get network of best name,
+    q = '''
+    SELECT ?a1 ?a2 WHERE {
+            ?f a po:Friendship . ?f po:snapshot <%s> .
+            ?f po:member ?a1, ?a2 .
+            FILTER(?a1 != ?a2)
+            }
+    ''' % (res[adists[0]][1],)
+    print( q )
+    r = l.query(q)
+    res2 = pl(r)
+    print( q, len(res2) )
+    print( len(set([i[0] for i in res2])), len(set([i[1] for i in res2])) )
+
+    # return network first 10 names
+    return res, res2
+
+
 @app.route("/mynsa/", methods=['POST'])
 def mynsa():
     r = request.get_json()
@@ -1504,16 +1565,21 @@ def mynsa():
         name__ = r['name__']
         if bool(r['fbnet']):
             fbnet = 'lavanda'
-            getLOSDFBNet(r['name'])
+            print('hey man 1')
+            netdata = getLOSDFBNet(r['name'])
     elif 'name_' in r:
         nm = r['name_']
         if nm[0] == 'all' and nm[1] == 'nodes':
             more = 'yet them dw.py'
             more_ = getLOSD()
-        if nm[0] == 'all' and nm[1] == 'snaps':
+        elif nm[0] == 'all' and nm[1] == 'snaps':
             more = 'yet them all.py'
             more_ = getLOSDSnaps()
             more__ = getLOSDSnaps('fb')
+        else:
+            print('hey man 1')
+            byname = getLOSDNetsByName(name__)
+
     bi = locals()
     del bi['r']
     return jsonify({
