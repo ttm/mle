@@ -1533,7 +1533,7 @@ def getLOSDFBNet(name):
     adists = n.argsort(dists)[::-1]
     res_ = [res[i] for i in adists]
     names = [i[0] for i in res_]
-    print('+-=-=-=-=))))> ', name, names, len(names))
+    # print('+-=-=-=-=))))> ', name, names, len(names))
 
     # get network of best name,
     q = '''
@@ -1543,14 +1543,22 @@ def getLOSDFBNet(name):
             FILTER(?a1 != ?a2)
             }
     ''' % (res_[0][1],)
-    print( q )
+    # print( q )
     r = l.query(q)
     res2 = pl(r)
-    print( q, len(res2) )
-    print( len(set([i[0] for i in res2])), len(set([i[1] for i in res2])) )
+    # print( q, len(res2) )
+    # print( len(set([i[0] for i in res2])), len(set([i[1] for i in res2])) )
+    q = '''
+    SELECT ?p WHERE {
+            ?p a po:Participant . ?p po:snapshot <%s> .
+            }
+    ''' % (res_[0][1],)
+    # print( q )
+    r = l.query(q)
+    res3 = pl(r)
 
     # return network first 10 names
-    return res_, res2
+    return res_, res2, res3
 
 
 @app.route("/mynsa/", methods=['POST'])
@@ -1594,3 +1602,12 @@ def mynsaLog():
         'ainfo': 56,
     })
 
+@app.route("/mGadget/", methods=['POST'])
+def mGadget():
+    r = request.get_json()
+    data = {}
+    bi = [23, 33,2]
+    return jsonify({
+        'something': 56,
+        'all': bi,
+    })
