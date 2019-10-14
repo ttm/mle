@@ -1003,7 +1003,8 @@ def getSphere(points):
             ) ** 0.5
     mean = dists.mean()
     std = dists.std()
-    return {**data, **{'mean': mean, 'std': std}}
+    d = {'mean': mean, 'std': std}
+    return {**data, **d}
 
 
 mfnames = {'dolphins': 'dolphinsA.txt', 'zackar': 'ZackarA.txt'}
